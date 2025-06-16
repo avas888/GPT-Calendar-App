@@ -79,6 +79,15 @@ export const LoginForm: React.FC = () => {
         const result = await signUp(formData.email, formData.password, formData.nombre);
         console.log('Sign up result:', result);
         
+        // Handle the case where user already exists
+        if (result.userAlreadyExists) {
+          setError('Este correo electrónico ya está registrado. Por favor, inicia sesión.');
+          setIsLogin(true);
+          setFormData({ email: formData.email, password: '', nombre: '' });
+          setFormLoading(false);
+          return;
+        }
+        
         if (result.user) {
           if (!result.session) {
             setSuccess('Cuenta creada exitosamente. Por favor verifica tu email antes de iniciar sesión.');
@@ -124,6 +133,19 @@ export const LoginForm: React.FC = () => {
       console.log('Creating admin account...');
       const result = await signUp('admin@agendapro.com', 'admin123', 'Administrador');
       
+      // Handle the case where user already exists
+      if (result.userAlreadyExists) {
+        setSuccess('La cuenta de administrador ya existe. Puedes iniciar sesión.');
+        setFormData({
+          email: 'admin@agendapro.com',
+          password: 'admin123',
+          nombre: 'Administrador'
+        });
+        setIsLogin(true);
+        setFormLoading(false);
+        return;
+      }
+      
       if (result.user) {
         setSuccess('Cuenta de administrador creada exitosamente. Ahora puedes iniciar sesión.');
         setFormData({
@@ -135,21 +157,8 @@ export const LoginForm: React.FC = () => {
       }
     } catch (err: unknown) {
       const errorMessage = getErrorMessage(err);
-      
-      if (errorMessage.includes('ya está registrado')) {
-        // Don't log this as an error since it's an expected scenario
-        setSuccess('La cuenta de administrador ya existe. Puedes iniciar sesión.');
-        setFormData({
-          email: 'admin@agendapro.com',
-          password: 'admin123',
-          nombre: 'Administrador'
-        });
-        setIsLogin(true);
-      } else {
-        // Only log unexpected errors
-        console.error('Error creating admin account:', err);
-        setError(`Error creando cuenta de administrador: ${errorMessage}`);
-      }
+      console.error('Error creating admin account:', err);
+      setError(`Error creando cuenta de administrador: ${errorMessage}`);
     } finally {
       setFormLoading(false);
     }

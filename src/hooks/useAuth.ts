@@ -10,6 +10,14 @@ interface DebugState {
   error?: string;
 }
 
+// Custom signup result interface
+interface SignUpResult {
+  user: User | null;
+  session: any;
+  userAlreadyExists?: boolean;
+  error?: any;
+}
+
 export const useAuth = () => {
   const [user, setUser] = useState<Usuario | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -308,7 +316,7 @@ export const useAuth = () => {
     }
   };
 
-  const signUp = async (email: string, password: string, nombre: string) => {
+  const signUp = async (email: string, password: string, nombre: string): Promise<SignUpResult> => {
     try {
       addDebugStep('signUp_start', { email, nombre });
       setLoading(true);
@@ -326,6 +334,20 @@ export const useAuth = () => {
       if (error) {
         addDebugStep('signUp_error', null, error.message);
         setLoading(false);
+        
+        // Handle "user already exists" error gracefully
+        if (error.message.includes('User already registered') || 
+            error.message.includes('user_already_exists')) {
+          addDebugStep('signUp_user_already_exists');
+          return {
+            user: null,
+            session: null,
+            userAlreadyExists: true,
+            error: error
+          };
+        }
+        
+        // For other errors, still throw
         throw error;
       }
 
@@ -340,7 +362,10 @@ export const useAuth = () => {
         setLoading(false);
       }
 
-      return data;
+      return {
+        user: data.user,
+        session: data.session
+      };
     } catch (error) {
       addDebugStep('signUp_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
       setLoading(false);
