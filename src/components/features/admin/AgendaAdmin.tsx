@@ -5,8 +5,21 @@ import { Card } from '../../atoms/Card';
 import { Input } from '../../atoms/Input';
 import { ToastSuccess } from '../../atoms/ToastSuccess';
 import { CitaFormModal } from './CitaFormModal';
-import { Calendar, Clock, User, Search, Filter, Plus, Edit } from 'lucide-react';
-import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
+import { Calendar, Clock, User, Search, Filter, Plus, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  format, 
+  addDays, 
+  startOfWeek, 
+  endOfWeek, 
+  startOfMonth, 
+  endOfMonth, 
+  addMonths, 
+  subMonths, 
+  eachDayOfInterval, 
+  isSameDay, 
+  isToday,
+  isSameMonth
+} from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface CitaCompleta extends Cita {
@@ -19,6 +32,7 @@ export const AgendaAdmin: React.FC = () => {
   const [citas, setCitas] = useState<CitaCompleta[]>([]);
   const [loading, setLoading] = useState(true);
   const [fechaSeleccionada, setFechaSeleccionada] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [displayMonth, setDisplayMonth] = useState(new Date()); // New state for calendar navigation
   const [filtroPersonal, setFiltroPersonal] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
   const [personal, setPersonal] = useState<Personal[]>([]);
@@ -28,6 +42,7 @@ export const AgendaAdmin: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
+    console.log('Fetching citas for date:', fechaSeleccionada); // Debug log
     fetchCitas();
     fetchPersonal();
   }, [fechaSeleccionada, filtroPersonal, filtroEstado]);
@@ -120,6 +135,7 @@ export const AgendaAdmin: React.FC = () => {
   };
 
   const handleCitaSuccess = () => {
+    console.log('Cita operation successful, refreshing data...'); // Debug log
     setToastMessage(editingCita ? 'Cita actualizada exitosamente' : 'Cita creada exitosamente');
     setShowToast(true);
     fetchCitas();
@@ -155,21 +171,30 @@ export const AgendaAdmin: React.FC = () => {
     }
   };
 
-  const generateWeekDates = () => {
-    const today = new Date();
-    const start = startOfWeek(today, { weekStartsOn: 1 }); // Monday
-    const dates = [];
+  // Generate calendar grid for the current display month
+  const generateCalendarDays = () => {
+    const monthStart = startOfMonth(displayMonth);
+    const monthEnd = endOfMonth(displayMonth);
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // Monday
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
     
-    for (let i = 0; i < 7; i++) {
-      const date = addDays(start, i);
-      dates.push({
-        value: format(date, 'yyyy-MM-dd'),
-        label: format(date, 'EEE dd', { locale: es }),
-        isToday: format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
-      });
-    }
-    
-    return dates;
+    return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+  };
+
+  // Navigate to previous month
+  const goToPreviousMonth = () => {
+    setDisplayMonth(prev => subMonths(prev, 1));
+  };
+
+  // Navigate to next month
+  const goToNextMonth = () => {
+    setDisplayMonth(prev => addMonths(prev, 1));
+  };
+
+  // Handle day selection
+  const handleDaySelect = (date: Date) => {
+    const dateString = format(date, 'yyyy-MM-dd');
+    setFechaSeleccionada(dateString);
   };
 
   const calcularEstadisticas = () => {
@@ -182,6 +207,7 @@ export const AgendaAdmin: React.FC = () => {
   };
 
   const stats = calcularEstadisticas();
+  const calendarDays = generateCalendarDays();
 
   return (
     <div>
@@ -228,30 +254,115 @@ export const AgendaAdmin: React.FC = () => {
         </Card>
       </div>
 
+      {/* Enhanced Calendar Navigation */}
+      <Card className="mb-6">
+        <div className="flex flex-col space-y-4">
+          {/* Month Navigation Header */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Seleccionar Fecha</h3>
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={goToPreviousMonth}
+                className="flex items-center"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <h4 className="text-lg font-medium text-gray-900 min-w-[200px] text-center">
+                {format(displayMonth, 'MMMM yyyy', { locale: es })}
+              </h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={goToNextMonth}
+                className="flex items-center"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Calendar Grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {/* Day headers */}
+            {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day) => (
+              <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
+                {day}
+              </div>
+            ))}
+            
+            {/* Calendar days */}
+            {calendarDays.map((day) => {
+              const dayString = format(day, 'yyyy-MM-dd');
+              const isSelected = dayString === fechaSeleccionada;
+              const isTodayDate = isToday(day);
+              const isCurrentMonth = isSameMonth(day, displayMonth);
+              
+              return (
+                <button
+                  key={dayString}
+                  onClick={() => handleDaySelect(day)}
+                  className={`
+                    p-2 text-sm rounded-lg transition-colors relative
+                    ${isSelected 
+                      ? 'bg-blue-600 text-white' 
+                      : isTodayDate 
+                      ? 'bg-blue-100 text-blue-700 font-medium'
+                      : isCurrentMonth
+                      ? 'text-gray-900 hover:bg-gray-100'
+                      : 'text-gray-400 hover:bg-gray-50'
+                    }
+                  `}
+                >
+                  {format(day, 'd')}
+                  {isTodayDate && !isSelected && (
+                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 rounded-full"></div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Quick date selection */}
+          <div className="flex items-center space-x-2 pt-4 border-t border-gray-200">
+            <span className="text-sm font-medium text-gray-700">Acceso rápido:</span>
+            <Button
+              size="sm"
+              variant={isToday(new Date(fechaSeleccionada)) ? 'primary' : 'secondary'}
+              onClick={() => {
+                const today = new Date();
+                setFechaSeleccionada(format(today, 'yyyy-MM-dd'));
+                setDisplayMonth(today);
+              }}
+            >
+              Hoy
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                const tomorrow = addDays(new Date(), 1);
+                setFechaSeleccionada(format(tomorrow, 'yyyy-MM-dd'));
+                setDisplayMonth(tomorrow);
+              }}
+            >
+              Mañana
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       {/* Filters */}
       <Card className="mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0 lg:space-x-4">
-          {/* Date selector */}
+          {/* Selected date display */}
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fecha
+              Fecha seleccionada
             </label>
-            <div className="flex space-x-2 overflow-x-auto">
-              {generateWeekDates().map((date) => (
-                <button
-                  key={date.value}
-                  onClick={() => setFechaSeleccionada(date.value)}
-                  className={`flex-shrink-0 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                    fechaSeleccionada === date.value
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : date.isToday
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="text-center capitalize">{date.label}</div>
-                </button>
-              ))}
+            <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 font-medium">
+              {format(new Date(fechaSeleccionada), 'EEEE, dd MMMM yyyy', { locale: es })}
             </div>
           </div>
 
