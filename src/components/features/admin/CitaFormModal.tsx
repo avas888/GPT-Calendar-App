@@ -333,263 +333,268 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
         isOpen={isOpen}
         onClose={onClose}
         title={editingCita ? 'Editar Cita' : 'Nueva Cita'}
-        size="lg"
+        size="xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Cliente Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              <User className="w-4 h-4 inline mr-2" />
-              Cliente
-            </label>
-            
-            {/* Client Type Toggle */}
-            {!editingCita && (
-              <div className="flex space-x-4 mb-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="clientType"
-                    checked={!isNewClient}
-                    onChange={() => {
-                      setIsNewClient(false);
-                      setClientCreationError('');
-                      setFormData(prev => ({ ...prev, cliente_id: '' }));
-                    }}
-                    className="mr-2"
-                  />
-                  <Users className="w-4 h-4 mr-1" />
-                  <span className="text-sm font-medium">Cliente existente</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="clientType"
-                    checked={isNewClient}
-                    onChange={() => {
-                      setIsNewClient(true);
-                      setClientCreationError('');
-                      setFormData(prev => ({ ...prev, cliente_id: '' }));
-                    }}
-                    className="mr-2"
-                  />
-                  <UserPlus className="w-4 h-4 mr-1" />
-                  <span className="text-sm font-medium">Nuevo cliente</span>
-                </label>
-              </div>
-            )}
-
-            {/* Existing Client Selection */}
-            {!isNewClient && (
-              <select
-                value={formData.cliente_id}
-                onChange={(e) => setFormData(prev => ({ ...prev, cliente_id: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              >
-                <option value="">Seleccionar cliente</option>
-                {usuarios.map((usuario) => (
-                  <option key={usuario.id} value={usuario.id}>
-                    {usuario.nombre} ({usuario.correo})
-                  </option>
-                ))}
-              </select>
-            )}
-
-            {/* New Client Form */}
-            {isNewClient && (
-              <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center mb-2">
-                  <UserPlus className="w-4 h-4 text-blue-600 mr-2" />
-                  <span className="text-sm font-medium text-blue-800">Datos del nuevo cliente</span>
+        <div className="max-h-[80vh] overflow-y-auto">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Cliente Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                <User className="w-4 h-4 inline mr-2" />
+                Cliente
+              </label>
+              
+              {/* Client Type Toggle */}
+              {!editingCita && (
+                <div className="flex space-x-4 mb-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="clientType"
+                      checked={!isNewClient}
+                      onChange={() => {
+                        setIsNewClient(false);
+                        setClientCreationError('');
+                        setFormData(prev => ({ ...prev, cliente_id: '' }));
+                      }}
+                      className="mr-2"
+                    />
+                    <Users className="w-4 h-4 mr-1" />
+                    <span className="text-sm font-medium">Cliente existente</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="clientType"
+                      checked={isNewClient}
+                      onChange={() => {
+                        setIsNewClient(true);
+                        setClientCreationError('');
+                        setFormData(prev => ({ ...prev, cliente_id: '' }));
+                      }}
+                      className="mr-2"
+                    />
+                    <UserPlus className="w-4 h-4 mr-1" />
+                    <span className="text-sm font-medium">Nuevo cliente</span>
+                  </label>
                 </div>
-                
-                <Input
-                  label="Nombre completo"
-                  value={newClientName}
-                  onChange={(e) => {
-                    setNewClientName(e.target.value);
-                    setClientCreationError('');
-                  }}
-                  placeholder="Nombre del cliente"
+              )}
+
+              {/* Existing Client Selection */}
+              {!isNewClient && (
+                <select
+                  value={formData.cliente_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_id: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
-                />
-                
-                <Input
-                  label="Email"
-                  type="email"
-                  value={newClientEmail}
-                  onChange={(e) => {
-                    setNewClientEmail(e.target.value);
-                    setClientCreationError('');
-                  }}
-                  placeholder="cliente@ejemplo.com"
-                  required
-                />
-                
-                {clientCreationError && (
-                  <div className="text-red-600 text-sm bg-red-50 p-2 rounded">
-                    {clientCreationError}
+                >
+                  <option value="">Seleccionar cliente</option>
+                  {usuarios.map((usuario) => (
+                    <option key={usuario.id} value={usuario.id}>
+                      {usuario.nombre} ({usuario.correo})
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {/* New Client Form */}
+              {isNewClient && (
+                <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center mb-2">
+                    <UserPlus className="w-4 h-4 text-blue-600 mr-2" />
+                    <span className="text-sm font-medium text-blue-800">Datos del nuevo cliente</span>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Personal Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Personal
-            </label>
-            <select
-              value={formData.personal_id}
-              onChange={(e) => setFormData(prev => ({ ...prev, personal_id: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            >
-              <option value="">Seleccionar personal</option>
-              {personal.map((person) => (
-                <option key={person.id} value={person.id}>
-                  {person.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Date and Time */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="w-4 h-4 inline mr-2" />
-                Fecha
-              </label>
-              <select
-                value={formData.fecha}
-                onChange={(e) => setFormData(prev => ({ ...prev, fecha: e.target.value, hora_inicio: '' }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              >
-                <option value="">Seleccionar fecha</option>
-                {generateDateOptions().map((date) => (
-                  <option key={date} value={date}>
-                    {formatDateForDisplay(date)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Clock className="w-4 h-4 inline mr-2" />
-                Hora
-              </label>
-              <select
-                value={formData.hora_inicio}
-                onChange={(e) => setFormData(prev => ({ ...prev, hora_inicio: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-                disabled={horariosDisponibles.length === 0}
-              >
-                <option value="">Seleccionar hora</option>
-                {horariosDisponibles.map((hora) => (
-                  <option key={hora} value={hora}>
-                    {hora}
-                  </option>
-                ))}
-              </select>
-              {formData.fecha && formData.personal_id && formData.servicios_seleccionados.length > 0 && horariosDisponibles.length === 0 && (
-                <p className="text-sm text-red-600 mt-1">No hay horarios disponibles</p>
+                  
+                  <Input
+                    label="Nombre completo"
+                    value={newClientName}
+                    onChange={(e) => {
+                      setNewClientName(e.target.value);
+                      setClientCreationError('');
+                    }}
+                    placeholder="Nombre del cliente"
+                    required
+                  />
+                  
+                  <Input
+                    label="Email"
+                    type="email"
+                    value={newClientEmail}
+                    onChange={(e) => {
+                      setNewClientEmail(e.target.value);
+                      setClientCreationError('');
+                    }}
+                    placeholder="cliente@ejemplo.com"
+                    required
+                  />
+                  
+                  {clientCreationError && (
+                    <div className="text-red-600 text-sm bg-red-50 p-2 rounded">
+                      {clientCreationError}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-          </div>
 
-          {/* Services Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <DollarSign className="w-4 h-4 inline mr-2" />
-              Servicios
-            </label>
-            <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
-              {servicios.map((servicio) => (
-                <label key={servicio.id} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.servicios_seleccionados.includes(servicio.id)}
-                    onChange={(e) => handleServicioChange(servicio.id, e.target.checked)}
-                    className="mr-3"
-                  />
-                  <div className="flex-1">
-                    <span className="font-medium">{servicio.nombre}</span>
-                    <span className="text-sm text-gray-600 ml-2">
-                      {servicio.duracion_min} min • ${servicio.precio.toLocaleString()}
-                    </span>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Services Summary */}
-          {formData.servicios_seleccionados.length > 0 && (
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium text-blue-900 mb-2">Resumen de servicios</h4>
-              <div className="text-sm text-blue-700">
-                <div>Duración total: {calcularDuracionTotal(getServiciosSeleccionados())} min</div>
-                <div>Precio total: ${calcularPrecioTotal(getServiciosSeleccionados()).toLocaleString()}</div>
-              </div>
-            </div>
-          )}
-
-          {/* Estado (only for editing) */}
-          {editingCita && (
+            {/* Personal Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Estado
+                Personal
               </label>
               <select
-                value={formData.estado}
-                onChange={(e) => setFormData(prev => ({ ...prev, estado: e.target.value as any }))}
+                value={formData.personal_id}
+                onChange={(e) => setFormData(prev => ({ ...prev, personal_id: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
               >
-                <option value="confirmada">Confirmada</option>
-                <option value="realizada">Realizada</option>
-                <option value="cancelada">Cancelada</option>
-                <option value="no_asistio">No asistió</option>
+                <option value="">Seleccionar personal</option>
+                {personal.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.nombre}
+                  </option>
+                ))}
               </select>
             </div>
-          )}
 
-          {/* Action Buttons */}
-          <div className="flex space-x-3 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClose}
-              className="flex-1"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              loading={loading}
-              disabled={loading}
-              className="flex-1"
-            >
-              {editingCita ? 'Actualizar' : 'Crear'} Cita
-            </Button>
+            {/* Date and Time */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Calendar className="w-4 h-4 inline mr-2" />
+                  Fecha
+                </label>
+                <select
+                  value={formData.fecha}
+                  onChange={(e) => setFormData(prev => ({ ...prev, fecha: e.target.value, hora_inicio: '' }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                >
+                  <option value="">Seleccionar fecha</option>
+                  {generateDateOptions().map((date) => (
+                    <option key={date} value={date}>
+                      {formatDateForDisplay(date)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Clock className="w-4 h-4 inline mr-2" />
+                  Hora
+                </label>
+                <div className="relative">
+                  <select
+                    value={formData.hora_inicio}
+                    onChange={(e) => setFormData(prev => ({ ...prev, hora_inicio: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-h-40"
+                    required
+                    disabled={horariosDisponibles.length === 0}
+                    size={8}
+                  >
+                    <option value="">Seleccionar hora</option>
+                    {horariosDisponibles.map((hora) => (
+                      <option key={hora} value={hora}>
+                        {hora}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {formData.fecha && formData.personal_id && formData.servicios_seleccionados.length > 0 && horariosDisponibles.length === 0 && (
+                  <p className="text-sm text-red-600 mt-1">No hay horarios disponibles</p>
+                )}
+              </div>
+            </div>
+
+            {/* Services Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <DollarSign className="w-4 h-4 inline mr-2" />
+                Servicios
+              </label>
+              <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                {servicios.map((servicio) => (
+                  <label key={servicio.id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.servicios_seleccionados.includes(servicio.id)}
+                      onChange={(e) => handleServicioChange(servicio.id, e.target.checked)}
+                      className="mr-3"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium">{servicio.nombre}</span>
+                      <span className="text-sm text-gray-600 ml-2">
+                        {servicio.duracion_min} min • ${servicio.precio.toLocaleString()}
+                      </span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Services Summary */}
+            {formData.servicios_seleccionados.length > 0 && (
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">Resumen de servicios</h4>
+                <div className="text-sm text-blue-700">
+                  <div>Duración total: {calcularDuracionTotal(getServiciosSeleccionados())} min</div>
+                  <div>Precio total: ${calcularPrecioTotal(getServiciosSeleccionados()).toLocaleString()}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Estado (only for editing) */}
             {editingCita && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estado
+                </label>
+                <select
+                  value={formData.estado}
+                  onChange={(e) => setFormData(prev => ({ ...prev, estado: e.target.value as any }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="confirmada">Confirmada</option>
+                  <option value="realizada">Realizada</option>
+                  <option value="cancelada">Cancelada</option>
+                  <option value="no_asistio">No asistió</option>
+                </select>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3 pt-4 border-t border-gray-200">
               <Button
                 type="button"
-                variant="error"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center"
+                variant="secondary"
+                onClick={onClose}
+                className="flex-1"
               >
-                <Trash2 className="w-4 h-4 mr-1" />
-                Eliminar
+                Cancelar
               </Button>
-            )}
-          </div>
-        </form>
+              <Button
+                type="submit"
+                loading={loading}
+                disabled={loading}
+                className="flex-1"
+              >
+                {editingCita ? 'Actualizar' : 'Crear'} Cita
+              </Button>
+              {editingCita && (
+                <Button
+                  type="button"
+                  variant="error"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Eliminar
+                </Button>
+              )}
+            </div>
+          </form>
+        </div>
       </Modal>
 
       {/* Delete Confirmation Dialog */}
