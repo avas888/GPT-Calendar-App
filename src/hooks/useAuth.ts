@@ -101,6 +101,9 @@ export const useAuth = () => {
       }
 
       addDebugStep('handleUserSession_completed_successfully');
+      
+      // CRITICAL: Set loading to false on successful completion
+      setLoading(false);
 
     } catch (error) {
       addDebugStep('handleUserSession_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
@@ -207,6 +210,7 @@ export const useAuth = () => {
         addDebugStep('handleUserSessionFallback_final_fallback', fallbackUser);
       }
     } finally {
+      // CRITICAL: Always set loading to false in fallback
       setLoading(false);
     }
   };
@@ -250,7 +254,7 @@ export const useAuth = () => {
         addDebugStep('useEffect_overall_timeout_reached');
         setLoading(false);
       }
-    }, 15000); // 15 second overall timeout
+    }, 10000); // Reduced to 10 seconds for faster feedback
 
     // Check initial session
     checkSession();
@@ -291,6 +295,7 @@ export const useAuth = () => {
 
       if (error) {
         addDebugStep('signIn_error', null, error.message);
+        setLoading(false);
         throw error;
       }
 
@@ -298,9 +303,8 @@ export const useAuth = () => {
       return data;
     } catch (error) {
       addDebugStep('signIn_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
-      throw error;
-    } finally {
       setLoading(false);
+      throw error;
     }
   };
 
@@ -321,6 +325,7 @@ export const useAuth = () => {
 
       if (error) {
         addDebugStep('signUp_error', null, error.message);
+        setLoading(false);
         throw error;
       }
 
@@ -338,9 +343,8 @@ export const useAuth = () => {
       return data;
     } catch (error) {
       addDebugStep('signUp_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
-      throw error;
-    } finally {
       setLoading(false);
+      throw error;
     }
   };
 
