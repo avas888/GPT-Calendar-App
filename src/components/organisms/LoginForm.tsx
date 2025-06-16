@@ -3,7 +3,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
 import { Card } from '../atoms/Card';
-import { DebugInfo } from '../DebugInfo';
 import { Calendar, Info, AlertCircle, CheckCircle } from 'lucide-react';
 
 export const LoginForm: React.FC = () => {
@@ -102,8 +101,6 @@ export const LoginForm: React.FC = () => {
             {isLogin ? 'Inicia sesión en tu cuenta' : 'Crea tu cuenta nueva'}
           </p>
         </div>
-
-        <DebugInfo />
 
         <Card className="mb-6 bg-blue-50 border-blue-200">
           <div className="flex items-start">
