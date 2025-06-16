@@ -44,42 +44,40 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Top Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Left side: Logo + App name + Navigation */}
-            <div className="flex items-center space-x-8">
-              {/* Logo and App Name */}
-              <div className="flex items-center">
-                <Calendar className="w-8 h-8 text-blue-600 mr-3" />
-                <h1 className="text-xl font-semibold text-gray-900">
-                  AgendaPro
-                </h1>
-                <span className="ml-3 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                  MVP Mode
-                </span>
+            {/* Left side: Logo + App name */}
+            <div className="flex items-center">
+              <Calendar className="w-8 h-8 text-blue-600 mr-3" />
+              <h1 className="text-xl font-semibold text-gray-900">
+                AgendaPro
+              </h1>
+              <span className="ml-3 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                MVP Mode
+              </span>
+            </div>
+            
+            {/* Mobile Navigation - only visible on small screens */}
+            <div className="lg:hidden flex-1 mx-8">
+              <div className="flex space-x-1 overflow-x-auto">
+                {getNavigationItems().map((item) => (
+                  <button
+                    key={item.href}
+                    onClick={() => navigate(item.href)}
+                    className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+                      isActiveRoute(item.href)
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4 mr-2" />
+                    {item.label}
+                  </button>
+                ))}
               </div>
-              
-              {/* Navigation Menu */}
-              <nav className="hidden lg:flex">
-                <div className="flex space-x-1">
-                  {getNavigationItems().map((item) => (
-                    <button
-                      key={item.href}
-                      onClick={() => navigate(item.href)}
-                      className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-                        isActiveRoute(item.href)
-                          ? 'text-blue-600 bg-blue-50'
-                          : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-                      }`}
-                    >
-                      <item.icon className="w-4 h-4 mr-2" />
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </nav>
             </div>
             
             {/* Right side: User info + Sign out */}
@@ -98,31 +96,35 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </Button>
             </div>
           </div>
-          
-          {/* Mobile Navigation */}
-          <div className="lg:hidden pb-4">
-            <div className="flex space-x-1 overflow-x-auto">
-              {getNavigationItems().map((item) => (
-                <button
-                  key={item.href}
-                  onClick={() => navigate(item.href)}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-                    isActiveRoute(item.href)
-                      ? 'text-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-                  }`}
-                >
-                  <item.icon className="w-4 h-4 mr-2" />
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </header>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <main>{children}</main>
+      {/* Main Container with Sidebar and Content */}
+      <div className="flex flex-1 max-w-7xl mx-auto w-full">
+        {/* Vertical Sidebar - hidden on mobile */}
+        <nav className="hidden lg:flex lg:flex-col w-64 bg-white shadow-sm border-r border-gray-200">
+          <div className="flex-1 px-4 py-6 space-y-1">
+            {getNavigationItems().map((item) => (
+              <button
+                key={item.href}
+                onClick={() => navigate(item.href)}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  isActiveRoute(item.href)
+                    ? 'text-blue-600 bg-blue-50 border-r-2 border-blue-600'
+                    : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
+                }`}
+              >
+                <item.icon className="w-5 h-5 mr-3" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+        
+        {/* Main Content Area */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+          {children}
+        </main>
       </div>
     </div>
   );
