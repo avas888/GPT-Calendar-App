@@ -70,7 +70,13 @@ export const AgendaAdmin: React.FC = () => {
 
       const { data: citasData, error } = await query.order('hora_inicio');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching citas:', error);
+        setCitas([]);
+        return;
+      }
+
+      console.log('Fetched citas data:', citasData); // Debug log
 
       // Get services details for each cita
       const citasConServicios = await Promise.all(
@@ -93,9 +99,11 @@ export const AgendaAdmin: React.FC = () => {
         })
       );
 
+      console.log('Processed citas with services:', citasConServicios); // Debug log
       setCitas(citasConServicios as CitaCompleta[]);
     } catch (error) {
       console.error('Error fetching citas:', error);
+      setCitas([]);
     } finally {
       setLoading(false);
     }
@@ -286,6 +294,20 @@ export const AgendaAdmin: React.FC = () => {
         </div>
       </Card>
 
+      {/* Debug info */}
+      {import.meta.env.DEV && (
+        <Card className="mb-4 bg-yellow-50 border-yellow-200">
+          <div className="text-sm text-yellow-800">
+            <strong>Debug Info:</strong><br/>
+            Fecha seleccionada: {fechaSeleccionada}<br/>
+            Filtro personal: {filtroPersonal || 'Ninguno'}<br/>
+            Filtro estado: {filtroEstado || 'Ninguno'}<br/>
+            Citas encontradas: {citas.length}<br/>
+            Loading: {loading ? 'Sí' : 'No'}
+          </div>
+        </Card>
+      )}
+
       {/* Citas list */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -298,7 +320,7 @@ export const AgendaAdmin: React.FC = () => {
             No hay citas para mostrar
           </h3>
           <p className="text-gray-600 mb-4">
-            No se encontraron citas con los filtros seleccionados
+            No se encontraron citas para el {format(new Date(fechaSeleccionada), 'dd/MM/yyyy')}
           </p>
           <Button onClick={handleNewCita}>
             <Plus className="w-4 h-4 mr-2" />
@@ -329,24 +351,29 @@ export const AgendaAdmin: React.FC = () => {
                         <User className="w-4 h-4 text-gray-400 mr-2" />
                         <span className="font-medium">Cliente:</span>
                       </div>
-                      <span className="text-gray-900">{cita.cliente.nombre}</span>
-                      <div className="text-gray-600">{cita.cliente.correo}</div>
+                      <span className="text-gray-900">{cita.cliente?.nombre || 'Cliente no encontrado'}</span>
+                      <div className="text-gray-600">{cita.cliente?.correo || ''}</div>
                     </div>
                     
                     <div>
                       <div className="font-medium mb-1">Personal:</div>
-                      <span className="text-gray-900">{cita.personal.nombre}</span>
+                      <span className="text-gray-900">{cita.personal?.nombre || 'Personal no encontrado'}</span>
                     </div>
                     
                     <div>
                       <div className="font-medium mb-1">Servicios:</div>
                       <div className="text-gray-900">
-                        {cita.servicios_detalle.map(s => s.nombre).join(', ')}
+                        {cita.servicios_detalle.length > 0 
+                          ? cita.servicios_detalle.map(s => s.nombre).join(', ')
+                          : 'Servicios no encontrados'
+                        }
                       </div>
-                      <div className="text-gray-600">
-                        {cita.servicios_detalle.reduce((total, s) => total + s.duracion_min, 0)} min • 
-                        ${cita.servicios_detalle.reduce((total, s) => total + s.precio, 0).toLocaleString()}
-                      </div>
+                      {cita.servicios_detalle.length > 0 && (
+                        <div className="text-gray-600">
+                          {cita.servicios_detalle.reduce((total, s) => total + s.duracion_min, 0)} min • 
+                          ${cita.servicios_detalle.reduce((total, s) => total + s.precio, 0).toLocaleString()}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
