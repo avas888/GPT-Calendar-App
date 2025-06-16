@@ -18,6 +18,29 @@ export const LoginForm: React.FC = () => {
     nombre: ''
   });
 
+  const getErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) {
+      const errorString = error.message.toLowerCase();
+      
+      // Check for user already exists error
+      if (errorString.includes('user already registered') || 
+          errorString.includes('user_already_exists')) {
+        return 'Este correo electrónico ya está registrado. Por favor, inicia sesión.';
+      }
+      
+      // Check for invalid credentials error
+      if (errorString.includes('invalid login credentials') || 
+          errorString.includes('invalid_credentials')) {
+        return 'Credenciales inválidas. Por favor, verifica tu correo y contraseña.';
+      }
+      
+      // Return original message for other specific errors
+      return error.message;
+    }
+    
+    return 'Error en la autenticación';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormLoading(true);
@@ -68,11 +91,7 @@ export const LoginForm: React.FC = () => {
       }
     } catch (err: unknown) {
       console.error('Authentication error:', err);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Error en la autenticación');
-      }
+      setError(getErrorMessage(err));
     } finally {
       setFormLoading(false);
     }
