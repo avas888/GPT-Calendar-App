@@ -305,110 +305,13 @@ export const AgendaAdmin: React.FC = () => {
         </Card>
       </div>
 
-      {/* Enhanced Calendar Navigation */}
-      <Card className="mb-6">
-        <div className="flex flex-col space-y-4">
-          {/* Month Navigation Header */}
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Seleccionar Fecha</h3>
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={goToPreviousMonth}
-                className="flex items-center"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <h4 className="text-lg font-medium text-gray-900 min-w-[200px] text-center">
-                {format(displayMonth, 'MMMM yyyy', { locale: es })}
-              </h4>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={goToNextMonth}
-                className="flex items-center"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {/* Day headers */}
-            {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day) => (
-              <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
-                {day}
-              </div>
-            ))}
-            
-            {/* Calendar days */}
-            {calendarDays.map((day) => {
-              const dayString = format(day, 'yyyy-MM-dd');
-              const isSelected = dayString === fechaSeleccionada && dateRangeFilter === 'none';
-              const isTodayDate = isToday(day);
-              const isCurrentMonth = isSameMonth(day, displayMonth);
-              
-              return (
-                <button
-                  key={dayString}
-                  onClick={() => handleDaySelect(day)}
-                  className={`
-                    p-2 text-sm rounded-lg transition-colors relative
-                    ${isSelected 
-                      ? 'bg-blue-600 text-white' 
-                      : isTodayDate 
-                      ? 'bg-blue-100 text-blue-700 font-medium'
-                      : isCurrentMonth
-                      ? 'text-gray-900 hover:bg-gray-100'
-                      : 'text-gray-400 hover:bg-gray-50'
-                    }
-                  `}
-                >
-                  {format(day, 'd')}
-                  {isTodayDate && !isSelected && (
-                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 rounded-full"></div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Quick date selection */}
-          <div className="flex items-center space-x-2 pt-4 border-t border-gray-200">
-            <span className="text-sm font-medium text-gray-700">Acceso rápido:</span>
-            <Button
-              size="sm"
-              variant={dateRangeFilter === 'today' ? 'primary' : 'secondary'}
-              onClick={() => {
-                setDateRangeFilter('today');
-                setDisplayMonth(new Date());
-              }}
-            >
-              Hoy
-            </Button>
-            <Button
-              size="sm"
-              variant={dateRangeFilter === 'tomorrow' ? 'primary' : 'secondary'}
-              onClick={() => {
-                setDateRangeFilter('tomorrow');
-                setDisplayMonth(new Date());
-              }}
-            >
-              Mañana
-            </Button>
-          </div>
-        </div>
-      </Card>
-
-      {/* Filters */}
+      {/* Date Range Filter - NOW FIRST */}
       <Card className="mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0 lg:space-x-4">
           {/* Date Range Filter */}
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fecha seleccionada
+              Filtro de fecha
             </label>
             <select
               value={dateRangeFilter}
@@ -471,6 +374,105 @@ export const AgendaAdmin: React.FC = () => {
           </div>
         </div>
       </Card>
+
+      {/* Enhanced Calendar Navigation - NOW AFTER FILTERS */}
+      {dateRangeFilter === 'none' && (
+        <Card className="mb-6">
+          <div className="flex flex-col space-y-4">
+            {/* Month Navigation Header */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Seleccionar Fecha Específica</h3>
+              <div className="flex items-center space-x-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={goToPreviousMonth}
+                  className="flex items-center"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <h4 className="text-lg font-medium text-gray-900 min-w-[200px] text-center">
+                  {format(displayMonth, 'MMMM yyyy', { locale: es })}
+                </h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={goToNextMonth}
+                  className="flex items-center"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Calendar Grid */}
+            <div className="grid grid-cols-7 gap-1">
+              {/* Day headers */}
+              {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day) => (
+                <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
+                  {day}
+                </div>
+              ))}
+              
+              {/* Calendar days */}
+              {calendarDays.map((day) => {
+                const dayString = format(day, 'yyyy-MM-dd');
+                const isSelected = dayString === fechaSeleccionada && dateRangeFilter === 'none';
+                const isTodayDate = isToday(day);
+                const isCurrentMonth = isSameMonth(day, displayMonth);
+                
+                return (
+                  <button
+                    key={dayString}
+                    onClick={() => handleDaySelect(day)}
+                    className={`
+                      p-2 text-sm rounded-lg transition-colors relative
+                      ${isSelected 
+                        ? 'bg-blue-600 text-white' 
+                        : isTodayDate 
+                        ? 'bg-blue-100 text-blue-700 font-medium'
+                        : isCurrentMonth
+                        ? 'text-gray-900 hover:bg-gray-100'
+                        : 'text-gray-400 hover:bg-gray-50'
+                      }
+                    `}
+                  >
+                    {format(day, 'd')}
+                    {isTodayDate && !isSelected && (
+                      <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 rounded-full"></div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Quick date selection */}
+            <div className="flex items-center space-x-2 pt-4 border-t border-gray-200">
+              <span className="text-sm font-medium text-gray-700">Acceso rápido:</span>
+              <Button
+                size="sm"
+                variant={dateRangeFilter === 'today' ? 'primary' : 'secondary'}
+                onClick={() => {
+                  setDateRangeFilter('today');
+                  setDisplayMonth(new Date());
+                }}
+              >
+                Hoy
+              </Button>
+              <Button
+                size="sm"
+                variant={dateRangeFilter === 'tomorrow' ? 'primary' : 'secondary'}
+                onClick={() => {
+                  setDateRangeFilter('tomorrow');
+                  setDisplayMonth(new Date());
+                }}
+              >
+                Mañana
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Debug info */}
       {import.meta.env.DEV && (
