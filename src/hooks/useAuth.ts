@@ -3,15 +3,17 @@ import { supabase, Usuario, UserRole } from '../lib/supabaseClient';
 import { User } from '@supabase/supabase-js';
 
 export const useAuth = () => {
+  // All useState hooks first
   const [user, setUser] = useState<Usuario | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
   
-  // Use refs to prevent infinite loops
+  // All useRef hooks next
   const initializingRef = useRef(false);
   const fetchingUserRef = useRef(false);
 
+  // All useEffect hooks last
   useEffect(() => {
     console.log('🔄 useAuth: useEffect started');
     let mounted = true;
