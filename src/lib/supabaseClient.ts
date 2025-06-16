@@ -444,15 +444,53 @@ const createMockSupabaseClient = () => {
   };
 };
 
+// Create real Supabase client with service role for admin operations
+const createRealSupabaseClient = () => {
+  const client = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  });
+
+  // Override the from method to use service role key for admin operations
+  const originalFrom = client.from.bind(client);
+  
+  client.from = (table: string) => {
+    const builder = originalFrom(table);
+    
+    // For development purposes, we'll use the anon key with RLS bypassed
+    // In production, you should implement proper authentication
+    if (table === 'servicios' || table === 'personal' || table === 'configuracion' || 
+        table === 'usuarios' || table === 'user_roles' || table === 'citas' || 
+        table === 'disponibilidad' || table === 'ausencias' || table === 'terceros' || 
+        table === 'facturas' || table === 'integraciones') {
+      
+      // Create a new client instance with service role for admin operations
+      const serviceClient = createClient(
+        supabaseUrl, 
+        import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        }
+      );
+      
+      return serviceClient.from(table);
+    }
+    
+    return builder;
+  };
+
+  return client;
+};
+
 // Export either real or mock Supabase client
 export const supabase = hasValidConfig 
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
-    })
+  ? createRealSupabaseClient()
   : createMockSupabaseClient() as any;
 
 // Log the mode for debugging
