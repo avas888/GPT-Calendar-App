@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, Cita, Usuario, Personal, Servicio } from '../../../lib/supabaseClient';
-import { calcularDuracionTotal, calcularPrecioTotal, generarHorariosDisponibles } from '../../../lib/calculos';
 import { Button } from '../../atoms/Button';
 import { Input } from '../../atoms/Input';
 import { Modal } from '../../atoms/Modal';
 import { ConfirmDialog } from '../../atoms/ConfirmDialog';
 import { User, Calendar, Clock, DollarSign, Trash2, UserPlus, Users } from 'lucide-react';
-import { format, addMinutes } from 'date-fns';
 
 interface CitaFormModalProps {
   isOpen: boolean;
@@ -43,6 +41,31 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
     estado: 'confirmada' as const
   });
 
+  // Helper functions
+  const calcularDuracionTotal = (servicios: Servicio[]): number => {
+    return servicios.reduce((total, servicio) => total + servicio.duracion_min, 0);
+  };
+
+  const calcularPrecioTotal = (servicios: Servicio[]): number => {
+    return servicios.reduce((total, servicio) => total + servicio.precio, 0);
+  };
+
+  const formatTime = (minutes: number): string => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  };
+
+  const generateHorarios = (): string[] => {
+    const horarios = [];
+    for (let hour = 8; hour <= 18; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        horarios.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+      }
+    }
+    return horarios;
+  };
+
   useEffect(() => {
     if (isOpen) {
       fetchData();
@@ -64,7 +87,7 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
 
   useEffect(() => {
     if (formData.fecha && formData.personal_id && formData.servicios_seleccionados.length > 0) {
-      fetchHorariosDisponibles();
+      setHorariosDisponibles(generateHorarios());
     }
   }, [formData.fecha, formData.personal_id, formData.servicios_seleccionados]);
 
@@ -95,48 +118,6 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
       setServicios(serviciosData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
-    }
-  };
-
-  const fetchHorariosDisponibles = async () => {
-    if (!formData.fecha || !formData.personal_id || formData.servicios_seleccionados.length === 0) return;
-
-    try {
-      // Fetch disponibilidad
-      const { data: disponibilidad } = await supabase
-        .from('disponibilidad')
-        .select('*')
-        .eq('personal_id', formData.personal_id);
-
-      // Fetch citas existentes (excluding current cita if editing)
-      let citasQuery = supabase
-        .from('citas')
-        .select('*')
-        .eq('personal_id', formData.personal_id)
-        .eq('fecha', formData.fecha)
-        .in('estado', ['confirmada']);
-
-      if (editingCita) {
-        citasQuery = citasQuery.neq('id', editingCita.id);
-      }
-
-      const { data: citas } = await citasQuery;
-
-      const serviciosSeleccionados = servicios.filter(s => 
-        formData.servicios_seleccionados.includes(s.id)
-      );
-      const duracionTotal = calcularDuracionTotal(serviciosSeleccionados);
-      
-      const horarios = generarHorariosDisponibles(
-        formData.fecha,
-        disponibilidad || [],
-        citas || [],
-        duracionTotal
-      );
-
-      setHorariosDisponibles(horarios);
-    } catch (error) {
-      console.error('Error fetching horarios:', error);
     }
   };
 
@@ -247,15 +228,18 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
       );
       const duracionTotal = calcularDuracionTotal(serviciosSeleccionados);
       
-      const horaFin = new Date(`2000-01-01T${formData.hora_inicio}`);
-      horaFin.setMinutes(horaFin.getMinutes() + duracionTotal);
+      // Calculate end time
+      const [hours, minutes] = formData.hora_inicio.split(':').map(Number);
+      const startMinutes = hours * 60 + minutes;
+      const endMinutes = startMinutes + duracionTotal;
+      const horaFin = formatTime(endMinutes);
 
       const citaData = {
         cliente_id: clienteId,
         personal_id: formData.personal_id,
         fecha: formData.fecha,
         hora_inicio: formData.hora_inicio,
-        hora_fin: format(horaFin, 'HH:mm'),
+        hora_fin: horaFin,
         estado: formData.estado,
         servicios: formData.servicios_seleccionados
       };
@@ -330,9 +314,17 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
     for (let i = 0; i <= 30; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      dates.push(format(date, 'yyyy-MM-dd'));
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      dates.push(`${year}-${month}-${day}`);
     }
     return dates;
+  };
+
+  const formatDateForDisplay = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES');
   };
 
   return (
@@ -480,7 +472,7 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
                 <option value="">Seleccionar fecha</option>
                 {generateDateOptions().map((date) => (
                   <option key={date} value={date}>
-                    {format(new Date(date), 'dd/MM/yyyy')}
+                    {formatDateForDisplay(date)}
                   </option>
                 ))}
               </select>
