@@ -65,6 +65,17 @@ export const useAuth = () => {
         return;
       }
 
+      // Check if RPC result indicates success
+      if (rpcResult && typeof rpcResult === 'object' && rpcResult.success === false) {
+        addDebugStep('handleUserSession_rpc_returned_failure', rpcResult);
+        console.error('🔐 RPC returned failure:', rpcResult);
+        
+        // Fallback to direct database operations
+        addDebugStep('handleUserSession_rpc_failure_fallback_starting');
+        await handleUserSessionFallback(authUser);
+        return;
+      }
+
       addDebugStep('handleUserSession_rpc_success', rpcResult);
 
       // Fetch the user profile from database after RPC call
@@ -109,9 +120,6 @@ export const useAuth = () => {
       }
 
       addDebugStep('handleUserSession_completed_successfully');
-      
-      // CRITICAL: Set loading to false on successful completion
-      setLoading(false);
 
     } catch (error) {
       addDebugStep('handleUserSession_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
@@ -119,6 +127,10 @@ export const useAuth = () => {
       
       // Create fallback user for development
       await handleUserSessionFallback(authUser);
+    } finally {
+      // CRITICAL: Always set loading to false when handleUserSession completes
+      addDebugStep('handleUserSession_setting_loading_false');
+      setLoading(false);
     }
   };
 
@@ -219,6 +231,7 @@ export const useAuth = () => {
       }
     } finally {
       // CRITICAL: Always set loading to false in fallback
+      addDebugStep('handleUserSessionFallback_setting_loading_false');
       setLoading(false);
     }
   };
@@ -233,7 +246,6 @@ export const useAuth = () => {
       if (error) {
         addDebugStep('checkSession_error', null, error.message);
         console.error('🔐 useAuth: Error getting session:', error);
-        setLoading(false);
         return;
       }
 
@@ -249,6 +261,9 @@ export const useAuth = () => {
     } catch (error) {
       addDebugStep('checkSession_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
       console.error('🔐 useAuth: Error checking session:', error);
+    } finally {
+      // CRITICAL: Always set loading to false when checkSession completes
+      addDebugStep('checkSession_setting_loading_false_finally');
       setLoading(false);
     }
   }, []);
@@ -303,7 +318,6 @@ export const useAuth = () => {
 
       if (error) {
         addDebugStep('signIn_error', null, error.message);
-        setLoading(false);
         throw error;
       }
 
@@ -311,8 +325,12 @@ export const useAuth = () => {
       return data;
     } catch (error) {
       addDebugStep('signIn_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
-      setLoading(false);
       throw error;
+    } finally {
+      // CRITICAL: Set loading to false in signIn finally block
+      // Note: handleUserSession will also set loading to false, but this ensures it's set even if handleUserSession fails
+      addDebugStep('signIn_setting_loading_false_finally');
+      setLoading(false);
     }
   };
 
@@ -333,7 +351,6 @@ export const useAuth = () => {
 
       if (error) {
         addDebugStep('signUp_error', null, error.message);
-        setLoading(false);
         
         // Handle "user already exists" error gracefully
         if (error.message.includes('User already registered') || 
@@ -357,9 +374,6 @@ export const useAuth = () => {
       if (data.user && data.session) {
         addDebugStep('signUp_immediate_confirmation');
         await handleUserSession(data.user);
-      } else {
-        addDebugStep('signUp_needs_confirmation');
-        setLoading(false);
       }
 
       return {
@@ -368,8 +382,11 @@ export const useAuth = () => {
       };
     } catch (error) {
       addDebugStep('signUp_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
-      setLoading(false);
       throw error;
+    } finally {
+      // CRITICAL: Set loading to false in signUp finally block
+      addDebugStep('signUp_setting_loading_false_finally');
+      setLoading(false);
     }
   };
 
