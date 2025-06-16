@@ -87,6 +87,7 @@ export const useAuth = () => {
       if (session?.user) {
         console.log('🔐 useAuth: Found existing session for:', session.user.email);
         await handleUserSession(session.user);
+        setLoading(false);
       } else {
         console.log('🔐 useAuth: No existing session found');
         setLoading(false);
