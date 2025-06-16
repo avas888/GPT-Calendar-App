@@ -80,10 +80,10 @@ export const PanelAdministrativo: React.FC = () => {
   return (
     <div className="w-full">
       {/* Dynamic Section Title */}
-      <div className="mb-6">
-        <h2 className="text-lg font-medium text-gray-600 capitalize">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">
           {getCurrentTabLabel()}
-        </h2>
+        </h1>
       </div>
 
       {/* Content */}

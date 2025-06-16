@@ -235,13 +235,9 @@ export const AgendaAdmin: React.FC = () => {
     <div>
       {/* Header with Add Button */}
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Agenda Administrativa</h2>
-          <p className="text-gray-600">Gestiona todas las citas del negocio</p>
-        </div>
         <Button
           onClick={handleNewCita}
-          className="flex items-center"
+          className="flex items-center ml-auto"
         >
           <Plus className="w-4 h-4 mr-2" />
           Nueva Cita
