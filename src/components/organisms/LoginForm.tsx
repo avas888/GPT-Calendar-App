@@ -134,10 +134,10 @@ export const LoginForm: React.FC = () => {
         setIsLogin(true);
       }
     } catch (err: unknown) {
-      console.error('Error creating admin account:', err);
       const errorMessage = getErrorMessage(err);
       
       if (errorMessage.includes('ya está registrado')) {
+        // Don't log this as an error since it's an expected scenario
         setSuccess('La cuenta de administrador ya existe. Puedes iniciar sesión.');
         setFormData({
           email: 'admin@agendapro.com',
@@ -146,6 +146,8 @@ export const LoginForm: React.FC = () => {
         });
         setIsLogin(true);
       } else {
+        // Only log unexpected errors
+        console.error('Error creating admin account:', err);
         setError(`Error creando cuenta de administrador: ${errorMessage}`);
       }
     } finally {
