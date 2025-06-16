@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
-import { Usuario } from '../lib/supabaseClient';
+import { supabase, Usuario } from '../lib/supabaseClient';
 
 export const useAuth = () => {
   const [user, setUser] = useState<Usuario | null>(null);
@@ -9,30 +8,8 @@ export const useAuth = () => {
   const [supabaseUser, setSupabaseUser] = useState<any>(null);
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          setLoading(false);
-          return;
-        }
-
-        if (session?.user) {
-          setSupabaseUser(session.user);
-          await loadUserProfile(session.user);
-        } else {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error in getInitialSession:', error);
-        setLoading(false);
-      }
-    };
-
-    getInitialSession();
+    // Check initial session
+    checkSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -40,93 +17,115 @@ export const useAuth = () => {
         console.log('Auth state changed:', event, session);
         
         if (session?.user) {
-          setSupabaseUser(session.user);
-          await loadUserProfile(session.user);
+          await handleUserSession(session.user);
         } else {
           setUser(null);
           setUserRole(null);
           setSupabaseUser(null);
-          setLoading(false);
         }
+        setLoading(false);
       }
     );
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadUserProfile = async (authUser: any) => {
+  const checkSession = async () => {
     try {
-      console.log('Loading profile for user:', authUser.id);
+      const { data: { session }, error } = await supabase.auth.getSession();
       
-      // Get user profile
-      const { data: userData, error: userError } = await supabase
+      if (error) {
+        console.error('Error getting session:', error);
+        setLoading(false);
+        return;
+      }
+
+      if (session?.user) {
+        await handleUserSession(session.user);
+      } else {
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error checking session:', error);
+      setLoading(false);
+    }
+  };
+
+  const handleUserSession = async (authUser: any) => {
+    try {
+      setSupabaseUser(authUser);
+      
+      // Get or create user profile
+      let { data: userProfile, error: userError } = await supabase
         .from('usuarios')
         .select('*')
         .eq('id', authUser.id)
         .single();
 
-      // Get user role
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('rol')
-        .eq('user_id', authUser.id)
-        .single();
-
-      // If user profile or role doesn't exist, create them
-      if (!userData || !roleData) {
-        console.log('User profile or role missing, creating...');
+      if (userError && userError.code === 'PGRST116') {
+        // User doesn't exist, create profile
+        console.log('Creating user profile for:', authUser.email);
         
-        try {
-          await supabase.rpc('create_user_profile', {
-            user_id: authUser.id,
-            user_email: authUser.email,
-            user_name: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario',
-          });
-
-          // Retry fetching after creation
-          const { data: newUserData } = await supabase
-            .from('usuarios')
-            .select('*')
-            .eq('id', authUser.id)
-            .single();
-
-          const { data: newRoleData } = await supabase
-            .from('user_roles')
-            .select('rol')
-            .eq('user_id', authUser.id)
-            .single();
-
-          setUser(newUserData);
-          setUserRole(newRoleData?.rol || 'cliente');
-        } catch (createError) {
-          console.error('Error creating user profile:', createError);
-          // Fallback: create minimal user object
-          setUser({
+        const { data: newUser, error: createError } = await supabase
+          .from('usuarios')
+          .insert([{
             id: authUser.id,
             correo: authUser.email,
-            nombre: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario',
-            created_at: new Date().toISOString()
-          });
-          setUserRole(authUser.email === 'admin@agendapro.com' ? 'admin' : 'cliente');
+            nombre: authUser.user_metadata?.nombre || authUser.email.split('@')[0]
+          }])
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating user profile:', createError);
+          return;
         }
-      } else {
-        setUser(userData);
-        setUserRole(roleData?.rol || 'cliente');
+        
+        userProfile = newUser;
+      } else if (userError) {
+        console.error('Error fetching user profile:', userError);
+        return;
       }
 
-      setLoading(false);
+      setUser(userProfile);
+
+      // Get or create user role
+      let { data: roles, error: roleError } = await supabase
+        .from('user_roles')
+        .select('rol')
+        .eq('user_id', authUser.id);
+
+      if (roleError) {
+        console.error('Error fetching user roles:', roleError);
+        return;
+      }
+
+      // If no roles exist, assign admin role for admin email or cliente for others
+      if (!roles || roles.length === 0) {
+        const defaultRole = authUser.email === 'admin@agendapro.com' ? 'admin' : 'cliente';
+        
+        console.log('Creating role for user:', authUser.email, 'Role:', defaultRole);
+        
+        const { error: roleCreateError } = await supabase
+          .from('user_roles')
+          .insert([{
+            user_id: authUser.id,
+            rol: defaultRole
+          }]);
+
+        if (roleCreateError) {
+          console.error('Error creating user role:', roleCreateError);
+        } else {
+          setUserRole(defaultRole);
+        }
+      } else {
+        // Set the first role (or admin if exists)
+        const adminRole = roles.find(r => r.rol === 'admin');
+        setUserRole(adminRole ? 'admin' : roles[0].rol);
+      }
+
     } catch (error) {
-      console.error('Error in loadUserProfile:', error);
-      
-      // Fallback: create minimal user object from auth data
-      setUser({
-        id: authUser.id,
-        correo: authUser.email,
-        nombre: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario',
-        created_at: new Date().toISOString()
-      });
-      setUserRole(authUser.email === 'admin@agendapro.com' ? 'admin' : 'cliente');
-      setLoading(false);
+      console.error('Error handling user session:', error);
     }
   };
 
@@ -136,67 +135,72 @@ export const useAuth = () => {
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Sign in error:', error);
+        throw error;
+      }
 
+      console.log('Sign in successful:', data);
       return data;
-    } catch (error: any) {
-      console.error('Sign in error:', error);
-      setLoading(false);
+    } catch (error) {
+      console.error('Sign in failed:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, nombre: string) => {
     try {
       setLoading(true);
-
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            nombre: nombre,
-          },
-        },
+            nombre: nombre
+          }
+        }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Sign up error:', error);
+        throw error;
+      }
 
-      // If user is created, create profile
-      if (data.user) {
-        try {
-          await supabase.rpc('create_user_profile', {
-            user_id: data.user.id,
-            user_email: email,
-            user_name: nombre,
-          });
-        } catch (profileError) {
-          console.error('Error creating user profile:', profileError);
-          // Don't throw here, as the user was created successfully
-        }
+      console.log('Sign up successful:', data);
+      
+      // If user is created and confirmed immediately, handle the session
+      if (data.user && data.session) {
+        await handleUserSession(data.user);
       }
 
       return data;
-    } catch (error: any) {
-      console.error('Sign up error:', error);
-      setLoading(false);
+    } catch (error) {
+      console.error('Sign up failed:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error('Sign out error:', error);
+        throw error;
+      }
       
       setUser(null);
       setUserRole(null);
       setSupabaseUser(null);
-    } catch (error: any) {
-      console.error('Sign out error:', error);
+    } catch (error) {
+      console.error('Sign out failed:', error);
       throw error;
     }
   };

@@ -44,20 +44,32 @@ export const LoginForm: React.FC = () => {
 
     try {
       if (isLogin) {
-        await signIn(formData.email, formData.password);
+        console.log('Attempting to sign in with:', formData.email);
+        const result = await signIn(formData.email, formData.password);
+        console.log('Sign in result:', result);
+        
+        if (result.user) {
+          setSuccess('Inicio de sesión exitoso. Redirigiendo...');
+        }
       } else {
+        console.log('Attempting to sign up with:', formData.email);
         const result = await signUp(formData.email, formData.password, formData.nombre);
+        console.log('Sign up result:', result);
+        
         if (result.user) {
           if (!result.session) {
             setSuccess('Cuenta creada exitosamente. Por favor verifica tu email antes de iniciar sesión.');
             setIsLogin(true);
             setFormData({ email: formData.email, password: '', nombre: '' });
-            setFormLoading(false);
+          } else {
+            setSuccess('Cuenta creada e iniciada sesión exitosamente. Redirigiendo...');
           }
         }
       }
     } catch (err: any) {
+      console.error('Authentication error:', err);
       setError(err.message || 'Error en la autenticación');
+    } finally {
       setFormLoading(false);
     }
   };
