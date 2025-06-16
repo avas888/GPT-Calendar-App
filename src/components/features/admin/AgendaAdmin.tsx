@@ -18,7 +18,9 @@ import {
   eachDayOfInterval, 
   isSameDay, 
   isToday,
-  isSameMonth
+  isSameMonth,
+  startOfDay,
+  endOfDay
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -32,7 +34,8 @@ export const AgendaAdmin: React.FC = () => {
   const [citas, setCitas] = useState<CitaCompleta[]>([]);
   const [loading, setLoading] = useState(true);
   const [fechaSeleccionada, setFechaSeleccionada] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [displayMonth, setDisplayMonth] = useState(new Date()); // New state for calendar navigation
+  const [displayMonth, setDisplayMonth] = useState(new Date());
+  const [dateRangeFilter, setDateRangeFilter] = useState<'none' | 'today' | 'tomorrow' | 'week' | 'month'>('none');
   const [filtroPersonal, setFiltroPersonal] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
   const [personal, setPersonal] = useState<Personal[]>([]);
@@ -42,10 +45,10 @@ export const AgendaAdmin: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
-    console.log('Fetching citas for date:', fechaSeleccionada); // Debug log
+    console.log('Fetching citas for date range filter:', dateRangeFilter, 'specific date:', fechaSeleccionada);
     fetchCitas();
     fetchPersonal();
-  }, [fechaSeleccionada, filtroPersonal, filtroEstado]);
+  }, [fechaSeleccionada, dateRangeFilter, filtroPersonal, filtroEstado]);
 
   const fetchPersonal = async () => {
     try {
@@ -72,8 +75,39 @@ export const AgendaAdmin: React.FC = () => {
           *,
           cliente:usuarios(*),
           personal(*)
-        `)
-        .eq('fecha', fechaSeleccionada);
+        `);
+
+      // Apply date range filter
+      let filterStartDate: Date;
+      let filterEndDate: Date;
+
+      switch (dateRangeFilter) {
+        case 'today':
+          filterStartDate = startOfDay(new Date());
+          filterEndDate = endOfDay(new Date());
+          break;
+        case 'tomorrow':
+          const tomorrow = addDays(new Date(), 1);
+          filterStartDate = startOfDay(tomorrow);
+          filterEndDate = endOfDay(tomorrow);
+          break;
+        case 'week':
+          filterStartDate = startOfWeek(new Date(), { weekStartsOn: 1 });
+          filterEndDate = endOfWeek(new Date(), { weekStartsOn: 1 });
+          break;
+        case 'month':
+          filterStartDate = startOfMonth(new Date());
+          filterEndDate = endOfMonth(new Date());
+          break;
+        default: // 'none' - use specific selected date
+          filterStartDate = startOfDay(new Date(fechaSeleccionada));
+          filterEndDate = endOfDay(new Date(fechaSeleccionada));
+          break;
+      }
+
+      query = query
+        .gte('fecha', format(filterStartDate, 'yyyy-MM-dd'))
+        .lte('fecha', format(filterEndDate, 'yyyy-MM-dd'));
 
       if (filtroPersonal) {
         query = query.eq('personal_id', filtroPersonal);
@@ -83,7 +117,7 @@ export const AgendaAdmin: React.FC = () => {
         query = query.eq('estado', filtroEstado);
       }
 
-      const { data: citasData, error } = await query.order('hora_inicio');
+      const { data: citasData, error } = await query.order('fecha').order('hora_inicio');
 
       if (error) {
         console.error('Error fetching citas:', error);
@@ -91,7 +125,7 @@ export const AgendaAdmin: React.FC = () => {
         return;
       }
 
-      console.log('Fetched citas data:', citasData); // Debug log
+      console.log('Fetched citas data:', citasData);
 
       // Get services details for each cita
       const citasConServicios = await Promise.all(
@@ -114,7 +148,7 @@ export const AgendaAdmin: React.FC = () => {
         })
       );
 
-      console.log('Processed citas with services:', citasConServicios); // Debug log
+      console.log('Processed citas with services:', citasConServicios);
       setCitas(citasConServicios as CitaCompleta[]);
     } catch (error) {
       console.error('Error fetching citas:', error);
@@ -135,7 +169,7 @@ export const AgendaAdmin: React.FC = () => {
   };
 
   const handleCitaSuccess = () => {
-    console.log('Cita operation successful, refreshing data...'); // Debug log
+    console.log('Cita operation successful, refreshing data...');
     setToastMessage(editingCita ? 'Cita actualizada exitosamente' : 'Cita creada exitosamente');
     setShowToast(true);
     fetchCitas();
@@ -195,6 +229,23 @@ export const AgendaAdmin: React.FC = () => {
   const handleDaySelect = (date: Date) => {
     const dateString = format(date, 'yyyy-MM-dd');
     setFechaSeleccionada(dateString);
+    setDateRangeFilter('none'); // Reset to specific date mode
+  };
+
+  // Get display text for current date filter
+  const getDisplayDateText = () => {
+    switch (dateRangeFilter) {
+      case 'today':
+        return 'Hoy';
+      case 'tomorrow':
+        return 'Mañana';
+      case 'week':
+        return 'Esta semana';
+      case 'month':
+        return 'Este mes';
+      default:
+        return format(new Date(fechaSeleccionada), 'EEEE, dd MMMM yyyy', { locale: es });
+    }
   };
 
   const calcularEstadisticas = () => {
@@ -295,7 +346,7 @@ export const AgendaAdmin: React.FC = () => {
             {/* Calendar days */}
             {calendarDays.map((day) => {
               const dayString = format(day, 'yyyy-MM-dd');
-              const isSelected = dayString === fechaSeleccionada;
+              const isSelected = dayString === fechaSeleccionada && dateRangeFilter === 'none';
               const isTodayDate = isToday(day);
               const isCurrentMonth = isSameMonth(day, displayMonth);
               
@@ -329,22 +380,20 @@ export const AgendaAdmin: React.FC = () => {
             <span className="text-sm font-medium text-gray-700">Acceso rápido:</span>
             <Button
               size="sm"
-              variant={isToday(new Date(fechaSeleccionada)) ? 'primary' : 'secondary'}
+              variant={dateRangeFilter === 'today' ? 'primary' : 'secondary'}
               onClick={() => {
-                const today = new Date();
-                setFechaSeleccionada(format(today, 'yyyy-MM-dd'));
-                setDisplayMonth(today);
+                setDateRangeFilter('today');
+                setDisplayMonth(new Date());
               }}
             >
               Hoy
             </Button>
             <Button
               size="sm"
-              variant="secondary"
+              variant={dateRangeFilter === 'tomorrow' ? 'primary' : 'secondary'}
               onClick={() => {
-                const tomorrow = addDays(new Date(), 1);
-                setFechaSeleccionada(format(tomorrow, 'yyyy-MM-dd'));
-                setDisplayMonth(tomorrow);
+                setDateRangeFilter('tomorrow');
+                setDisplayMonth(new Date());
               }}
             >
               Mañana
@@ -356,13 +405,31 @@ export const AgendaAdmin: React.FC = () => {
       {/* Filters */}
       <Card className="mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0 lg:space-x-4">
-          {/* Selected date display */}
+          {/* Date Range Filter */}
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Fecha seleccionada
             </label>
+            <select
+              value={dateRangeFilter}
+              onChange={(e) => setDateRangeFilter(e.target.value as any)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="none">Fecha específica</option>
+              <option value="today">Hoy</option>
+              <option value="tomorrow">Mañana</option>
+              <option value="week">Esta semana</option>
+              <option value="month">Este mes</option>
+            </select>
+          </div>
+
+          {/* Active Date Display */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Fecha activa
+            </label>
             <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 font-medium">
-              {format(new Date(fechaSeleccionada), 'EEEE, dd MMMM yyyy', { locale: es })}
+              {getDisplayDateText()}
             </div>
           </div>
 
@@ -410,7 +477,8 @@ export const AgendaAdmin: React.FC = () => {
         <Card className="mb-4 bg-yellow-50 border-yellow-200">
           <div className="text-sm text-yellow-800">
             <strong>Debug Info:</strong><br/>
-            Fecha seleccionada: {fechaSeleccionada}<br/>
+            Filtro de rango: {dateRangeFilter}<br/>
+            Fecha específica: {fechaSeleccionada}<br/>
             Filtro personal: {filtroPersonal || 'Ninguno'}<br/>
             Filtro estado: {filtroEstado || 'Ninguno'}<br/>
             Citas encontradas: {citas.length}<br/>
@@ -431,7 +499,7 @@ export const AgendaAdmin: React.FC = () => {
             No hay citas para mostrar
           </h3>
           <p className="text-gray-600 mb-4">
-            No se encontraron citas para el {format(new Date(fechaSeleccionada), 'dd/MM/yyyy')}
+            No se encontraron citas con los filtros seleccionados
           </p>
           <Button onClick={handleNewCita}>
             <Plus className="w-4 h-4 mr-2" />
@@ -445,6 +513,10 @@ export const AgendaAdmin: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center mb-2">
+                    <Calendar className="w-4 h-4 text-gray-400 mr-2" />
+                    <span className="font-medium text-gray-900 mr-4">
+                      {format(new Date(cita.fecha), 'EEEE, dd MMMM yyyy', { locale: es })}
+                    </span>
                     <Clock className="w-4 h-4 text-gray-400 mr-2" />
                     <span className="font-medium text-gray-900">
                       {cita.hora_inicio} - {cita.hora_fin}
