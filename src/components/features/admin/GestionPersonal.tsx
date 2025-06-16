@@ -279,14 +279,6 @@ export const GestionPersonal: React.FC = () => {
                     <UserCheck className="w-4 h-4" />
                   )}
                 </Button>
-                <Button
-                  size="sm"
-                  variant="error"
-                  onClick={() => handleDelete(person)}
-                  className="flex items-center"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
               </div>
             </Card>
           ))}
@@ -357,6 +349,17 @@ export const GestionPersonal: React.FC = () => {
             <Button type="submit" className="flex-1">
               {editingPersonal ? 'Actualizar' : 'Agregar'}
             </Button>
+            {editingPersonal && (
+              <Button
+                type="button"
+                variant="error"
+                onClick={() => handleDelete(editingPersonal)}
+                className="flex items-center"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Eliminar
+              </Button>
+            )}
           </div>
         </form>
       </Modal>
