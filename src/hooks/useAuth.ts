@@ -318,6 +318,17 @@ export const useAuth = () => {
 
       if (error) {
         addDebugStep('signIn_error', null, error.message);
+        
+        // Enhanced error handling for common authentication issues
+        if (error.message.includes('Invalid login credentials')) {
+          // Check if user exists but is unconfirmed
+          const { data: userData } = await supabase.auth.admin.getUserById(email);
+          if (userData) {
+            addDebugStep('signIn_user_exists_but_invalid_creds');
+            throw new Error('Credenciales inválidas. Verifica tu contraseña o que tu cuenta esté confirmada en Supabase.');
+          }
+        }
+        
         throw error;
       }
 
@@ -354,7 +365,8 @@ export const useAuth = () => {
         
         // Handle "user already exists" error gracefully
         if (error.message.includes('User already registered') || 
-            error.message.includes('user_already_exists')) {
+            error.message.includes('user_already_exists') ||
+            error.status === 422) {
           addDebugStep('signUp_user_already_exists');
           return {
             user: null,
@@ -382,6 +394,19 @@ export const useAuth = () => {
       };
     } catch (error) {
       addDebugStep('signUp_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
+      
+      // Additional check for user already exists in catch block
+      if (error instanceof Error && 
+          (error.message.includes('User already registered') || 
+           error.message.includes('user_already_exists'))) {
+        return {
+          user: null,
+          session: null,
+          userAlreadyExists: true,
+          error: error
+        };
+      }
+      
       throw error;
     } finally {
       // CRITICAL: Set loading to false in signUp finally block
