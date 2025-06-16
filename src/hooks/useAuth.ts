@@ -311,25 +311,31 @@ export const useAuth = () => {
       addDebugStep('signIn_start', { email });
       setLoading(true);
       
-      const { data: userData } = await supabase.auth.admin.getUserByEmail(email);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
       if (error) {
         addDebugStep('signIn_error', null, error.message);
         
         // Enhanced error handling for common authentication issues
         if (error.message.includes('Invalid login credentials')) {
-          // Check if user exists but is unconfirmed
-          const { data: userData } = await supabase.auth.admin.getUserById(email);
-          if (userData) {
-            addDebugStep('signIn_user_exists_but_invalid_creds');
-            throw new Error('Credenciales inválidas. Verifica tu contraseña o que tu cuenta esté confirmada en Supabase.');
-          }
+          addDebugStep('signIn_invalid_credentials');
+          throw new Error('Credenciales inválidas. Verifica tu email y contraseña.');
         }
         
         throw error;
       }
 
-      addDebugStep('signIn_success', { email });
+      addDebugStep('signIn_success', { email, hasUser: !!data.user, hasSession: !!data.session });
+      
+      // handleUserSession will be called automatically by the auth state change listener
+      // but we can also call it here to ensure immediate state update
+      if (data.user) {
+        await handleUserSession(data.user);
+      }
+      
       return data;
     } catch (error) {
       addDebugStep('signIn_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
