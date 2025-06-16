@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase, Usuario, UserRole } from '../lib/supabaseClient';
 import { User } from '@supabase/supabase-js';
 
@@ -7,17 +7,28 @@ export const useAuth = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  
+  // Use refs to prevent infinite loops
+  const initializingRef = useRef(false);
+  const fetchingUserRef = useRef(false);
 
   useEffect(() => {
     console.log('🔄 useAuth: useEffect started');
     let mounted = true;
 
     const initializeAuth = async () => {
+      // Prevent multiple simultaneous initializations
+      if (initializingRef.current) {
+        console.log('🚫 useAuth: Already initializing, skipping');
+        return;
+      }
+
+      initializingRef.current = true;
       console.log('🚀 useAuth: Initializing auth...');
+      
       try {
         console.log('📡 useAuth: Getting session...');
         
-        // Get initial session without timeout
         const { data: { session }, error } = await supabase.auth.getSession();
         
         console.log('📡 useAuth: Session result:', { 
@@ -48,6 +59,8 @@ export const useAuth = () => {
         if (mounted) {
           setLoading(false);
         }
+      } finally {
+        initializingRef.current = false;
       }
     };
 
@@ -86,12 +99,22 @@ export const useAuth = () => {
     return () => {
       console.log('🧹 useAuth: Cleanup - unmounting');
       mounted = false;
+      initializingRef.current = false;
+      fetchingUserRef.current = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Empty dependency array to run only once
 
   const fetchUserData = async (userId: string) => {
+    // Prevent multiple simultaneous fetches for the same user
+    if (fetchingUserRef.current) {
+      console.log('🚫 fetchUserData: Already fetching, skipping');
+      return;
+    }
+
+    fetchingUserRef.current = true;
     console.log('🔍 fetchUserData: Starting for userId:', userId);
+    
     try {
       console.log('📊 fetchUserData: Fetching user from usuarios table...');
 
@@ -159,6 +182,7 @@ export const useAuth = () => {
       setUserRole(null);
     } finally {
       setLoading(false);
+      fetchingUserRef.current = false;
     }
   };
 
@@ -284,7 +308,7 @@ export const useAuth = () => {
     }
   };
 
-  // Log current state whenever it changes
+  // Log current state whenever it changes (but don't cause re-renders)
   console.log('📊 useAuth: Current state:', { 
     hasUser: !!user, 
     userRole, 
