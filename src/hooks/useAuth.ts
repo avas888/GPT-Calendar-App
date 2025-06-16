@@ -65,82 +65,57 @@ export const useAuth = () => {
       console.log('🔐 useAuth: Handling user session for:', authUser.email);
       setSupabaseUser(authUser);
       
-      // Get or create user profile
-      console.log('🔐 useAuth: Fetching user profile...');
-      let { data: userProfile, error: userError } = await supabase
+      // Create or get user profile - SIMPLIFIED APPROACH
+      const { data: userProfile, error: userError } = await supabase
         .from('usuarios')
-        .select('*')
-        .eq('id', authUser.id)
+        .upsert([{
+          id: authUser.id,
+          correo: authUser.email,
+          nombre: authUser.user_metadata?.nombre || authUser.email.split('@')[0]
+        }], {
+          onConflict: 'id'
+        })
+        .select()
         .single();
 
-      if (userError && userError.code === 'PGRST116') {
-        // User doesn't exist, create profile
-        console.log('🔐 useAuth: Creating user profile for:', authUser.email);
-        
-        const { data: newUser, error: createError } = await supabase
-          .from('usuarios')
-          .insert([{
-            id: authUser.id,
-            correo: authUser.email,
-            nombre: authUser.user_metadata?.nombre || authUser.email.split('@')[0]
-          }])
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('🔐 useAuth: Error creating user profile:', createError);
-          return;
-        }
-        
-        console.log('🔐 useAuth: Created user profile:', newUser);
-        userProfile = newUser;
-      } else if (userError) {
-        console.error('🔐 useAuth: Error fetching user profile:', userError);
+      if (userError) {
+        console.error('🔐 useAuth: Error creating/updating user profile:', userError);
         return;
-      } else {
-        console.log('🔐 useAuth: Found existing user profile:', userProfile);
       }
 
+      console.log('🔐 useAuth: User profile ready:', userProfile);
       setUser(userProfile);
 
-      // Get or create user role
-      console.log('🔐 useAuth: Fetching user roles...');
-      let { data: roles, error: roleError } = await supabase
+      // Handle role assignment - SIMPLIFIED APPROACH
+      const isAdminEmail = authUser.email === 'admin@agendapro.com';
+      const defaultRole = isAdminEmail ? 'admin' : 'cliente';
+
+      // Try to get existing role first
+      const { data: existingRoles } = await supabase
         .from('user_roles')
         .select('rol')
         .eq('user_id', authUser.id);
 
-      if (roleError) {
-        console.error('🔐 useAuth: Error fetching user roles:', roleError);
-        return;
-      }
-
-      console.log('🔐 useAuth: Found roles:', roles);
-
-      // If no roles exist, assign admin role for admin email or cliente for others
-      if (!roles || roles.length === 0) {
-        const defaultRole = authUser.email === 'admin@agendapro.com' ? 'admin' : 'cliente';
-        
-        console.log('🔐 useAuth: Creating role for user:', authUser.email, 'Role:', defaultRole);
-        
-        const { error: roleCreateError } = await supabase
+      if (!existingRoles || existingRoles.length === 0) {
+        // Create role if none exists
+        const { error: roleError } = await supabase
           .from('user_roles')
           .insert([{
             user_id: authUser.id,
             rol: defaultRole
           }]);
 
-        if (roleCreateError) {
-          console.error('🔐 useAuth: Error creating user role:', roleCreateError);
+        if (roleError) {
+          console.error('🔐 useAuth: Error creating user role:', roleError);
         } else {
-          console.log('🔐 useAuth: Successfully created role:', defaultRole);
+          console.log('🔐 useAuth: Created role:', defaultRole);
           setUserRole(defaultRole);
         }
       } else {
-        // Set the first role (or admin if exists)
-        const adminRole = roles.find(r => r.rol === 'admin');
-        const selectedRole = adminRole ? 'admin' : roles[0].rol;
-        console.log('🔐 useAuth: Setting user role:', selectedRole);
+        // Use existing role (prefer admin if exists)
+        const adminRole = existingRoles.find(r => r.rol === 'admin');
+        const selectedRole = adminRole ? 'admin' : existingRoles[0].rol;
+        console.log('🔐 useAuth: Using existing role:', selectedRole);
         setUserRole(selectedRole);
       }
 
