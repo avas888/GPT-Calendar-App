@@ -251,14 +251,6 @@ export const GestionServicios: React.FC = () => {
                     <Eye className="w-4 h-4" />
                   )}
                 </Button>
-                <Button
-                  size="sm"
-                  variant="error"
-                  onClick={() => handleDelete(servicio)}
-                  className="flex items-center"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
               </div>
             </Card>
           ))}
@@ -332,6 +324,17 @@ export const GestionServicios: React.FC = () => {
             <Button type="submit" className="flex-1">
               {editingServicio ? 'Actualizar' : 'Agregar'}
             </Button>
+            {editingServicio && (
+              <Button
+                type="button"
+                variant="error"
+                onClick={() => handleDelete(editingServicio)}
+                className="flex items-center"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Eliminar
+              </Button>
+            )}
           </div>
         </form>
       </Modal>
