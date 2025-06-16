@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// For MVP development, we'll use mock values to prevent navigation errors
+// For MVP development, use mock values to prevent navigation errors
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://mock-project.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'mock-anon-key';
 
@@ -13,7 +13,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-// Types for database tables (keeping for future implementation)
+// Database table types
 export interface Usuario {
   id: string;
   correo: string;
@@ -58,7 +58,7 @@ export interface Personal {
 export interface Disponibilidad {
   id: string;
   personal_id: string;
-  dia_semana: number; // 0-6 (domingo-sábado)
+  dia_semana: number;
   hora_inicio: string;
   hora_fin: string;
 }

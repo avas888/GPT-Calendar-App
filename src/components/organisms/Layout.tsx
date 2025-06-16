@@ -7,17 +7,21 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+interface NavigationItem {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  href: string;
+}
+
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Mock user data for MVP
   const mockUser = {
     nombre: 'Administrador'
   };
   
-  const getNavigationItems = () => {
-    // For MVP, show all navigation items
+  const getNavigationItems = (): NavigationItem[] => {
     return [
       { icon: Calendar, label: 'Agenda Admin', href: '/admin/agenda' },
       { icon: Users, label: 'Personal', href: '/admin/personal' },
@@ -31,13 +35,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
   
   const handleSignOut = () => {
-    console.log('Sign out clicked - reloading page for MVP');
     window.location.reload();
+  };
+
+  const isActiveRoute = (href: string): boolean => {
+    return location.pathname === href || 
+           (href.startsWith('/admin') && location.pathname.startsWith(href));
   };
   
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -70,7 +77,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        {/* Navigation */}
         <nav className="mb-6 sm:mb-8">
           <div className="flex space-x-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200 overflow-x-auto">
             {getNavigationItems().map((item) => (
@@ -78,8 +84,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 key={item.href}
                 onClick={() => navigate(item.href)}
                 className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-                  location.pathname === item.href || 
-                  (item.href.startsWith('/admin') && location.pathname.startsWith(item.href))
+                  isActiveRoute(item.href)
                     ? 'text-blue-600 bg-blue-50'
                     : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                 }`}
@@ -91,7 +96,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </nav>
         
-        {/* Main Content */}
         <main>{children}</main>
       </div>
     </div>

@@ -25,7 +25,6 @@ export const LoginForm: React.FC = () => {
     setError('');
     setSuccess('');
 
-    // Basic validation
     if (!formData.email || !formData.password) {
       setError('Por favor completa todos los campos requeridos.');
       setFormLoading(false);
@@ -47,7 +46,6 @@ export const LoginForm: React.FC = () => {
     try {
       if (isLogin) {
         await signIn(formData.email, formData.password);
-        // Success will be handled by the auth state change and navigation
       } else {
         const result = await signUp(formData.email, formData.password, formData.nombre);
         if (result.user) {
@@ -57,11 +55,9 @@ export const LoginForm: React.FC = () => {
             setFormData({ email: formData.email, password: '', nombre: '' });
             setFormLoading(false);
           }
-          // If there's a session, the auth state change will handle the redirect
         }
       }
     } catch (err: any) {
-      console.error('Authentication error:', err);
       setError(err.message || 'Error en la autenticación');
       setFormLoading(false);
     }
@@ -80,7 +76,7 @@ export const LoginForm: React.FC = () => {
       password: 'admin123',
       nombre: 'Administrador'
     });
-    setIsLogin(false); // Switch to signup mode for admin creation
+    setIsLogin(false);
   };
 
   const fillTestCredentials = () => {
@@ -89,10 +85,9 @@ export const LoginForm: React.FC = () => {
       password: 'admin123',
       nombre: 'Administrador'
     });
-    setIsLogin(true); // Switch to login mode
+    setIsLogin(true);
   };
 
-  // Show loading if the main auth is loading
   const isLoading = loading || formLoading;
 
   return (
@@ -108,10 +103,8 @@ export const LoginForm: React.FC = () => {
           </p>
         </div>
 
-        {/* Debug info for development */}
         <DebugInfo />
 
-        {/* Admin setup info */}
         <Card className="mb-6 bg-blue-50 border-blue-200">
           <div className="flex items-start">
             <Info className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />

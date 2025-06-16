@@ -2,7 +2,6 @@ import React from 'react';
 import { Card } from './atoms/Card';
 
 export const DebugInfo: React.FC = () => {
-  // Only show in development
   if (import.meta.env.PROD) return null;
   
   return (

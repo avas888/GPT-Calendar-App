@@ -1,6 +1,6 @@
 import { format, addMinutes, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Cita, Servicio, Disponibilidad, Personal } from './supabaseClient';
+import { Cita, Servicio, Disponibilidad } from './supabaseClient';
 
 export const formatearFecha = (fecha: string): string => {
   return format(parseISO(fecha), 'dd/MM/yyyy', { locale: es });
@@ -56,7 +56,7 @@ export const generarHorariosDisponibles = (
         horarios.push(format(horaActual, 'HH:mm'));
       }
       
-      horaActual = addMinutes(horaActual, 30); // Intervalos de 30 minutos
+      horaActual = addMinutes(horaActual, 30);
     }
   });
   
@@ -67,7 +67,6 @@ export const validarHorarioComercial = (hora: string): boolean => {
   const [horas, minutos] = hora.split(':').map(Number);
   const totalMinutos = horas * 60 + minutos;
   
-  // Horario comercial típico: 8:00 a 20:00
   return totalMinutos >= 480 && totalMinutos <= 1200;
 };
 
