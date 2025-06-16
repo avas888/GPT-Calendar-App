@@ -8,59 +8,6 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
 
-  useEffect(() => {
-    console.log('🔐 useAuth: Initializing authentication...');
-    
-    // Check initial session
-    checkSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔐 useAuth: Auth state changed:', event, session?.user?.email || 'no user');
-        
-        if (session?.user) {
-          await handleUserSession(session.user);
-        } else {
-          console.log('🔐 useAuth: No session, clearing user state');
-          setUser(null);
-          setUserRole(null);
-          setSupabaseUser(null);
-        }
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      console.log('🔐 useAuth: Cleaning up auth subscription');
-      subscription.unsubscribe();
-    };
-  }, [checkSession]);
-
-  const checkSession = useCallback(async () => {
-    try {
-      console.log('🔐 useAuth: Checking existing session...');
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('🔐 useAuth: Error getting session:', error);
-        setLoading(false);
-        return;
-      }
-
-      if (session?.user) {
-        console.log('🔐 useAuth: Found existing session for:', session.user.email);
-        await handleUserSession(session.user);
-      } else {
-        console.log('🔐 useAuth: No existing session found');
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error('🔐 useAuth: Error checking session:', error);
-      setLoading(false);
-    }
-  }, []);
-
   const handleUserSession = async (authUser: User) => {
     try {
       console.log('🔐 useAuth: Handling user session for:', authUser.email);
@@ -124,6 +71,59 @@ export const useAuth = () => {
       console.error('🔐 useAuth: Error handling user session:', error);
     }
   };
+
+  const checkSession = useCallback(async () => {
+    try {
+      console.log('🔐 useAuth: Checking existing session...');
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('🔐 useAuth: Error getting session:', error);
+        setLoading(false);
+        return;
+      }
+
+      if (session?.user) {
+        console.log('🔐 useAuth: Found existing session for:', session.user.email);
+        await handleUserSession(session.user);
+      } else {
+        console.log('🔐 useAuth: No existing session found');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('🔐 useAuth: Error checking session:', error);
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log('🔐 useAuth: Initializing authentication...');
+    
+    // Check initial session
+    checkSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔐 useAuth: Auth state changed:', event, session?.user?.email || 'no user');
+        
+        if (session?.user) {
+          await handleUserSession(session.user);
+        } else {
+          console.log('🔐 useAuth: No session, clearing user state');
+          setUser(null);
+          setUserRole(null);
+          setSupabaseUser(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      console.log('🔐 useAuth: Cleaning up auth subscription');
+      subscription.unsubscribe();
+    };
+  }, [checkSession]);
 
   const signIn = async (email: string, password: string) => {
     try {
