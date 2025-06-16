@@ -311,10 +311,7 @@ export const useAuth = () => {
       addDebugStep('signIn_start', { email });
       setLoading(true);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      const { data: userData } = await supabase.auth.admin.getUserByEmail(email);
 
       if (error) {
         addDebugStep('signIn_error', null, error.message);
