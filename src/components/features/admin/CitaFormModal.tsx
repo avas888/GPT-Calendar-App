@@ -88,6 +88,8 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
   useEffect(() => {
     if (formData.fecha && formData.personal_id && formData.servicios_seleccionados.length > 0) {
       setHorariosDisponibles(generateHorarios());
+    } else {
+      setHorariosDisponibles([]);
     }
   }, [formData.fecha, formData.personal_id, formData.servicios_seleccionados]);
 
@@ -444,7 +446,7 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
               </label>
               <select
                 value={formData.personal_id}
-                onChange={(e) => setFormData(prev => ({ ...prev, personal_id: e.target.value }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, personal_id: e.target.value, hora_inicio: '' }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               >
@@ -457,7 +459,53 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
               </select>
             </div>
 
-            {/* Date and Time */}
+            {/* Services Selection - MOVED BEFORE DATE AND TIME */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <DollarSign className="w-4 h-4 inline mr-2" />
+                Servicios
+              </label>
+              <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                {servicios.map((servicio) => (
+                  <label key={servicio.id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.servicios_seleccionados.includes(servicio.id)}
+                      onChange={(e) => {
+                        handleServicioChange(servicio.id, e.target.checked);
+                        // Reset time when services change
+                        setFormData(prev => ({ ...prev, hora_inicio: '' }));
+                      }}
+                      className="mr-3"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium">{servicio.nombre}</span>
+                      <span className="text-sm text-gray-600 ml-2">
+                        {servicio.duracion_min} min • ${servicio.precio.toLocaleString()}
+                      </span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              {formData.servicios_seleccionados.length === 0 && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Selecciona al menos un servicio para continuar
+                </p>
+              )}
+            </div>
+
+            {/* Services Summary */}
+            {formData.servicios_seleccionados.length > 0 && (
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">Resumen de servicios</h4>
+                <div className="text-sm text-blue-700">
+                  <div>Duración total: {calcularDuracionTotal(getServiciosSeleccionados())} min</div>
+                  <div>Precio total: ${calcularPrecioTotal(getServiciosSeleccionados()).toLocaleString()}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Date and Time - NOW AFTER SERVICES */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -469,6 +517,7 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
                   onChange={(e) => setFormData(prev => ({ ...prev, fecha: e.target.value, hora_inicio: '' }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
+                  disabled={formData.servicios_seleccionados.length === 0}
                 >
                   <option value="">Seleccionar fecha</option>
                   {generateDateOptions().map((date) => (
@@ -477,6 +526,9 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
                     </option>
                   ))}
                 </select>
+                {formData.servicios_seleccionados.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-1">Primero selecciona los servicios</p>
+                )}
               </div>
 
               <div>
@@ -501,48 +553,20 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
                     ))}
                   </select>
                 </div>
+                {formData.servicios_seleccionados.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-1">Primero selecciona los servicios</p>
+                )}
+                {formData.servicios_seleccionados.length > 0 && !formData.fecha && (
+                  <p className="text-sm text-gray-500 mt-1">Selecciona una fecha primero</p>
+                )}
+                {formData.servicios_seleccionados.length > 0 && !formData.personal_id && (
+                  <p className="text-sm text-gray-500 mt-1">Selecciona el personal primero</p>
+                )}
                 {formData.fecha && formData.personal_id && formData.servicios_seleccionados.length > 0 && horariosDisponibles.length === 0 && (
                   <p className="text-sm text-red-600 mt-1">No hay horarios disponibles</p>
                 )}
               </div>
             </div>
-
-            {/* Services Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <DollarSign className="w-4 h-4 inline mr-2" />
-                Servicios
-              </label>
-              <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                {servicios.map((servicio) => (
-                  <label key={servicio.id} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={formData.servicios_seleccionados.includes(servicio.id)}
-                      onChange={(e) => handleServicioChange(servicio.id, e.target.checked)}
-                      className="mr-3"
-                    />
-                    <div className="flex-1">
-                      <span className="font-medium">{servicio.nombre}</span>
-                      <span className="text-sm text-gray-600 ml-2">
-                        {servicio.duracion_min} min • ${servicio.precio.toLocaleString()}
-                      </span>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Services Summary */}
-            {formData.servicios_seleccionados.length > 0 && (
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">Resumen de servicios</h4>
-                <div className="text-sm text-blue-700">
-                  <div>Duración total: {calcularDuracionTotal(getServiciosSeleccionados())} min</div>
-                  <div>Precio total: ${calcularPrecioTotal(getServiciosSeleccionados()).toLocaleString()}</div>
-                </div>
-              </div>
-            )}
 
             {/* Estado (only for editing) */}
             {editingCita && (
@@ -576,7 +600,7 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
               <Button
                 type="submit"
                 loading={loading}
-                disabled={loading}
+                disabled={loading || formData.servicios_seleccionados.length === 0}
                 className="flex-1"
               >
                 {editingCita ? 'Actualizar' : 'Crear'} Cita
