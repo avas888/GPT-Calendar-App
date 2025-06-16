@@ -41,7 +41,7 @@ export const useAuth = () => {
       // Use the database RPC function to handle user creation/update
       addDebugStep('handleUserSession_calling_rpc_function');
       
-      const { error: rpcError } = await supabase.rpc('handle_auth_user_creation', {
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('handle_auth_user_creation', {
         auth_user_id: authUser.id,
         auth_email: authUser.email || '',
         auth_name: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario'
@@ -57,7 +57,7 @@ export const useAuth = () => {
         return;
       }
 
-      addDebugStep('handleUserSession_rpc_success');
+      addDebugStep('handleUserSession_rpc_success', rpcResult);
 
       // Fetch the user profile from database after RPC call
       addDebugStep('handleUserSession_fetching_user_profile');
