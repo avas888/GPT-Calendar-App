@@ -346,21 +346,6 @@ export const AgendaAdmin: React.FC = () => {
         </div>
       </Card>
 
-      {/* Debug info */}
-      {import.meta.env.DEV && (
-        <Card className="mb-4 bg-yellow-50 border-yellow-200">
-          <div className="text-sm text-yellow-800">
-            <strong>Debug Info:</strong><br/>
-            Filtro de rango: {dateRangeFilter}<br/>
-            Fecha específica: {fechaSeleccionada}<br/>
-            Filtro personal: {filtroPersonal || 'Ninguno'}<br/>
-            Filtro estado: {filtroEstado || 'Ninguno'}<br/>
-            Citas encontradas: {citas.length}<br/>
-            Loading: {loading ? 'Sí' : 'No'}
-          </div>
-        </Card>
-      )}
-
       {/* Citas list */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
