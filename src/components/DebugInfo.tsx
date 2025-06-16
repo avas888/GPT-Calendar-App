@@ -13,6 +13,8 @@ export const DebugInfo: React.FC = () => {
         <div>✅ Mock admin user active</div>
         <div>✅ Supabase navigation disabled</div>
         <div>Environment: {import.meta.env.MODE}</div>
+        <div>Supabase URL: {import.meta.env.VITE_SUPABASE_URL ? 'Connected' : 'Missing'}</div>
+        <div>Supabase Key: {import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Set' : 'Missing'}</div>
       </div>
       <div className="mt-2 p-2 bg-green-100 rounded text-green-800 text-xs">
         <strong>MVP Mode Active!</strong><br/>
