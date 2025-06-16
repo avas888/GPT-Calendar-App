@@ -3,7 +3,9 @@ import { supabase, Cita, Usuario, Personal, Servicio } from '../../../lib/supaba
 import { Button } from '../../atoms/Button';
 import { Card } from '../../atoms/Card';
 import { Input } from '../../atoms/Input';
-import { Calendar, Clock, User, Search, Filter } from 'lucide-react';
+import { ToastSuccess } from '../../atoms/ToastSuccess';
+import { CitaFormModal } from './CitaFormModal';
+import { Calendar, Clock, User, Search, Filter, Plus, Edit } from 'lucide-react';
 import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -20,6 +22,10 @@ export const AgendaAdmin: React.FC = () => {
   const [filtroPersonal, setFiltroPersonal] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
   const [personal, setPersonal] = useState<Personal[]>([]);
+  const [showCitaModal, setShowCitaModal] = useState(false);
+  const [editingCita, setEditingCita] = useState<CitaCompleta | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     fetchCitas();
@@ -95,6 +101,22 @@ export const AgendaAdmin: React.FC = () => {
     }
   };
 
+  const handleEditCita = (cita: CitaCompleta) => {
+    setEditingCita(cita);
+    setShowCitaModal(true);
+  };
+
+  const handleNewCita = () => {
+    setEditingCita(null);
+    setShowCitaModal(true);
+  };
+
+  const handleCitaSuccess = () => {
+    setToastMessage(editingCita ? 'Cita actualizada exitosamente' : 'Cita creada exitosamente');
+    setShowToast(true);
+    fetchCitas();
+  };
+
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'confirmada':
@@ -155,6 +177,21 @@ export const AgendaAdmin: React.FC = () => {
 
   return (
     <div>
+      {/* Header with Add Button */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Agenda Administrativa</h2>
+          <p className="text-gray-600">Gestiona todas las citas del negocio</p>
+        </div>
+        <Button
+          onClick={handleNewCita}
+          className="flex items-center"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Nueva Cita
+        </Button>
+      </div>
+
       {/* Statistics cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card padding="sm" className="bg-blue-50 border-blue-200">
@@ -260,9 +297,13 @@ export const AgendaAdmin: React.FC = () => {
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             No hay citas para mostrar
           </h3>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-4">
             No se encontraron citas con los filtros seleccionados
           </p>
+          <Button onClick={handleNewCita}>
+            <Plus className="w-4 h-4 mr-2" />
+            Crear Primera Cita
+          </Button>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -309,11 +350,38 @@ export const AgendaAdmin: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                
+                <div className="ml-4">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleEditCita(cita)}
+                    className="flex items-center"
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Editar
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Cita Form Modal */}
+      <CitaFormModal
+        isOpen={showCitaModal}
+        onClose={() => setShowCitaModal(false)}
+        onSuccess={handleCitaSuccess}
+        editingCita={editingCita}
+      />
+
+      {/* Success toast */}
+      <ToastSuccess
+        message={toastMessage}
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+      />
     </div>
   );
 };
