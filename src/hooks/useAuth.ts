@@ -215,13 +215,8 @@ export const useAuth = () => {
     try {
       addDebugStep('checkSession_start');
       
-      // Add timeout to session check
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Session check timeout')), 10000); // 10 second timeout
-      });
-
-      const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+      // Session check (no manual timeout)
+      const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
         addDebugStep('checkSession_error', null, error.message);
