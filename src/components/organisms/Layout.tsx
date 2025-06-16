@@ -21,33 +21,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, userRole, signOut } = useAuth();
   
   const getNavigationItems = (): NavigationItem[] => {
-    const items: NavigationItem[] = [];
-    
-    // Admin routes
-    if (userRole === 'admin') {
-      items.push(
-        { icon: Calendar, label: 'Agenda Admin', href: '/admin/agenda', roles: ['admin'] },
-        { icon: Users, label: 'Personal', href: '/admin/personal', roles: ['admin'] },
-        { icon: DollarSign, label: 'Servicios', href: '/admin/servicios', roles: ['admin'] },
-        { icon: Settings, label: 'Configuración', href: '/admin/configuracion', roles: ['admin'] },
-        { icon: BarChart3, label: 'Reportes', href: '/admin/reportes', roles: ['admin'] }
-      );
-    }
-    
-    // Colaborador routes
-    if (userRole === 'colaborador') {
-      items.push(
-        { icon: User, label: 'Mi Agenda', href: '/agenda', roles: ['colaborador'] }
-      );
-    }
-    
-    // Cliente routes (available to all authenticated users)
-    items.push(
+    return [
+      { icon: Calendar, label: 'Agenda Admin', href: '/admin/agenda', roles: ['admin'] },
+      { icon: Users, label: 'Personal', href: '/admin/personal', roles: ['admin'] },
+      { icon: DollarSign, label: 'Servicios', href: '/admin/servicios', roles: ['admin'] },
+      { icon: Settings, label: 'Configuración', href: '/admin/configuracion', roles: ['admin'] },
+      { icon: BarChart3, label: 'Reportes', href: '/admin/reportes', roles: ['admin'] },
+      { icon: User, label: 'Mi Agenda', href: '/agenda', roles: ['colaborador'] },
       { icon: Calendar, label: 'Mis Citas', href: '/mis-citas', roles: ['cliente', 'admin', 'colaborador'] },
       { icon: Calendar, label: 'Reservar', href: '/reservar', roles: ['cliente', 'admin', 'colaborador'] }
-    );
-    
-    return items.filter(item => item.roles.includes(userRole || 'cliente'));
+    ];
   };
   
   const handleSignOut = async () => {

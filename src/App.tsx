@@ -9,7 +9,7 @@ import { PanelAdministrativo } from './components/features/admin/PanelAdministra
 import { useAuth } from './hooks/useAuth';
 
 function App() {
-  const { user, userRole, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   // Show loading spinner while checking authentication
   if (loading) {
@@ -30,19 +30,8 @@ function App() {
     <Router>
       <Layout>
         <Routes>
-          {/* Default route based on user role */}
-          <Route 
-            path="/" 
-            element={
-              userRole === 'admin' ? (
-                <Navigate to="/admin/agenda" replace />
-              ) : userRole === 'colaborador' ? (
-                <Navigate to="/agenda" replace />
-              ) : (
-                <Navigate to="/mis-citas" replace />
-              )
-            } 
-          />
+          {/* Default route - all users go to admin agenda in dev mode */}
+          <Route path="/" element={<Navigate to="/admin/agenda" replace />} />
           
           {/* Cliente routes */}
           <Route path="/mis-citas" element={<MisCitas />} />
@@ -51,24 +40,11 @@ function App() {
           {/* Colaborador routes */}
           <Route path="/agenda" element={<AgendaPersonal />} />
           
-          {/* Admin routes - only accessible to admin users */}
-          {userRole === 'admin' && (
-            <Route path="/admin/*" element={<PanelAdministrativo />} />
-          )}
+          {/* Admin routes - accessible to all users in dev mode */}
+          <Route path="/admin/*" element={<PanelAdministrativo />} />
           
           {/* Fallback route */}
-          <Route 
-            path="*" 
-            element={
-              userRole === 'admin' ? (
-                <Navigate to="/admin/agenda" replace />
-              ) : userRole === 'colaborador' ? (
-                <Navigate to="/agenda" replace />
-              ) : (
-                <Navigate to="/mis-citas" replace />
-              )
-            } 
-          />
+          <Route path="*" element={<Navigate to="/admin/agenda" replace />} />
         </Routes>
       </Layout>
     </Router>

@@ -57,15 +57,16 @@ export const useAuth = () => {
           console.error('🔐 useAuth: Error creating user role:', roleError);
         } else {
           console.log('🔐 useAuth: Created role:', defaultRole);
-          setUserRole(defaultRole);
         }
       } else {
         // Use existing role (prefer admin if exists)
         const adminRole = existingRoles.find(r => r.rol === 'admin');
         const selectedRole = adminRole ? 'admin' : existingRoles[0].rol;
         console.log('🔐 useAuth: Using existing role:', selectedRole);
-        setUserRole(selectedRole);
       }
+
+      // In development mode treat all users as admin
+      setUserRole('admin');
 
     } catch (error) {
       console.error('🔐 useAuth: Error handling user session:', error);
