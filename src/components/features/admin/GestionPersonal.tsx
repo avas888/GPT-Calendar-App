@@ -119,6 +119,17 @@ export const GestionPersonal: React.FC = () => {
 
       setToastMessage('Personal eliminado exitosamente');
       setShowToast(true);
+      
+      // Close the confirmation dialog
+      setShowConfirmDialog(false);
+      
+      // Close the main modal
+      setShowModal(false);
+      
+      // Reset form and clear editing state
+      resetForm();
+      
+      // Refresh the data
       await fetchPersonal();
     } catch (error) {
       console.error('Error deleting personal:', error);
