@@ -70,6 +70,9 @@ export const useAuth = () => {
 
     } catch (error) {
       console.error('🔐 useAuth: Error handling user session:', error);
+    } finally {
+      // Ensure loading is set to false after session handling
+      setLoading(false);
     }
   };
 
@@ -87,7 +90,7 @@ export const useAuth = () => {
       if (session?.user) {
         console.log('🔐 useAuth: Found existing session for:', session.user.email);
         await handleUserSession(session.user);
-        setLoading(false);
+        // Loading is set to false in handleUserSession
       } else {
         console.log('🔐 useAuth: No existing session found');
         setLoading(false);
@@ -111,13 +114,14 @@ export const useAuth = () => {
         
         if (session?.user) {
           await handleUserSession(session.user);
+          // Loading is set to false in handleUserSession
         } else {
           console.log('🔐 useAuth: No session, clearing user state');
           setUser(null);
           setUserRole(null);
           setSupabaseUser(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
@@ -178,6 +182,9 @@ export const useAuth = () => {
       if (data.user && data.session) {
         console.log('🔐 useAuth: User confirmed immediately, handling session');
         await handleUserSession(data.user);
+        // Loading is set to false in handleUserSession
+      } else {
+        setLoading(false);
       }
 
       return data;
@@ -185,7 +192,9 @@ export const useAuth = () => {
       console.error('🔐 useAuth: Sign up failed:', error);
       throw error;
     } finally {
-      setLoading(false);
+      if (loading) {
+        setLoading(false);
+      }
     }
   };
 
