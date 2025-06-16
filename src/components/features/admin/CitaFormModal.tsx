@@ -5,7 +5,7 @@ import { Button } from '../../atoms/Button';
 import { Input } from '../../atoms/Input';
 import { Modal } from '../../atoms/Modal';
 import { ConfirmDialog } from '../../atoms/ConfirmDialog';
-import { User, Calendar, Clock, DollarSign, Trash2 } from 'lucide-react';
+import { User, Calendar, Clock, DollarSign, Trash2, UserPlus, Users } from 'lucide-react';
 import { format, addMinutes } from 'date-fns';
 
 interface CitaFormModalProps {
@@ -28,6 +28,12 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
   const [horariosDisponibles, setHorariosDisponibles] = useState<string[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
+  // Client creation states
+  const [isNewClient, setIsNewClient] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
+  const [clientCreationError, setClientCreationError] = useState('');
+  
   const [formData, setFormData] = useState({
     cliente_id: '',
     personal_id: '',
@@ -49,6 +55,7 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
           servicios_seleccionados: editingCita.servicios || [],
           estado: editingCita.estado
         });
+        setIsNewClient(false);
       } else {
         resetForm();
       }
@@ -143,13 +150,98 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
       estado: 'confirmada'
     });
     setHorariosDisponibles([]);
+    setIsNewClient(false);
+    setNewClientName('');
+    setNewClientEmail('');
+    setClientCreationError('');
+  };
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const createNewClient = async (): Promise<string | null> => {
+    // Validate new client data
+    if (!newClientName.trim()) {
+      setClientCreationError('El nombre del cliente es requerido');
+      return null;
+    }
+
+    if (!newClientEmail.trim()) {
+      setClientCreationError('El email del cliente es requerido');
+      return null;
+    }
+
+    if (!validateEmail(newClientEmail)) {
+      setClientCreationError('Por favor ingresa un email válido');
+      return null;
+    }
+
+    try {
+      // Generate new UUID for the client
+      const clientId = crypto.randomUUID();
+
+      // Insert new client into usuarios table
+      const { error: usuarioError } = await supabase
+        .from('usuarios')
+        .insert([{
+          id: clientId,
+          correo: newClientEmail.trim(),
+          nombre: newClientName.trim()
+        }]);
+
+      if (usuarioError) {
+        if (usuarioError.code === '23505') { // Unique constraint violation
+          setClientCreationError('Ya existe un cliente con este email');
+        } else {
+          setClientCreationError('Error al crear el cliente: ' + usuarioError.message);
+        }
+        return null;
+      }
+
+      // Insert client role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert([{
+          user_id: clientId,
+          rol: 'cliente'
+        }]);
+
+      if (roleError) {
+        console.error('Error creating client role:', roleError);
+        // Don't fail the process if role creation fails
+      }
+
+      // Refresh usuarios list to include the new client
+      await fetchData();
+
+      return clientId;
+    } catch (error) {
+      console.error('Error creating new client:', error);
+      setClientCreationError('Error inesperado al crear el cliente');
+      return null;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setClientCreationError('');
 
     try {
+      let clienteId = formData.cliente_id;
+
+      // If creating a new client, create it first
+      if (isNewClient) {
+        const newClientId = await createNewClient();
+        if (!newClientId) {
+          setLoading(false);
+          return;
+        }
+        clienteId = newClientId;
+      }
+
       const serviciosSeleccionados = servicios.filter(s => 
         formData.servicios_seleccionados.includes(s.id)
       );
@@ -159,7 +251,7 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
       horaFin.setMinutes(horaFin.getMinutes() + duracionTotal);
 
       const citaData = {
-        cliente_id: formData.cliente_id,
+        cliente_id: clienteId,
         personal_id: formData.personal_id,
         fecha: formData.fecha,
         hora_inicio: formData.hora_inicio,
@@ -187,6 +279,7 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error saving cita:', error);
+      setClientCreationError('Error al guardar la cita');
     } finally {
       setLoading(false);
     }
@@ -253,23 +346,102 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Cliente Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
               <User className="w-4 h-4 inline mr-2" />
               Cliente
             </label>
-            <select
-              value={formData.cliente_id}
-              onChange={(e) => setFormData(prev => ({ ...prev, cliente_id: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            >
-              <option value="">Seleccionar cliente</option>
-              {usuarios.map((usuario) => (
-                <option key={usuario.id} value={usuario.id}>
-                  {usuario.nombre} ({usuario.correo})
-                </option>
-              ))}
-            </select>
+            
+            {/* Client Type Toggle */}
+            {!editingCita && (
+              <div className="flex space-x-4 mb-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="clientType"
+                    checked={!isNewClient}
+                    onChange={() => {
+                      setIsNewClient(false);
+                      setClientCreationError('');
+                      setFormData(prev => ({ ...prev, cliente_id: '' }));
+                    }}
+                    className="mr-2"
+                  />
+                  <Users className="w-4 h-4 mr-1" />
+                  <span className="text-sm font-medium">Cliente existente</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="clientType"
+                    checked={isNewClient}
+                    onChange={() => {
+                      setIsNewClient(true);
+                      setClientCreationError('');
+                      setFormData(prev => ({ ...prev, cliente_id: '' }));
+                    }}
+                    className="mr-2"
+                  />
+                  <UserPlus className="w-4 h-4 mr-1" />
+                  <span className="text-sm font-medium">Nuevo cliente</span>
+                </label>
+              </div>
+            )}
+
+            {/* Existing Client Selection */}
+            {!isNewClient && (
+              <select
+                value={formData.cliente_id}
+                onChange={(e) => setFormData(prev => ({ ...prev, cliente_id: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Seleccionar cliente</option>
+                {usuarios.map((usuario) => (
+                  <option key={usuario.id} value={usuario.id}>
+                    {usuario.nombre} ({usuario.correo})
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* New Client Form */}
+            {isNewClient && (
+              <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center mb-2">
+                  <UserPlus className="w-4 h-4 text-blue-600 mr-2" />
+                  <span className="text-sm font-medium text-blue-800">Datos del nuevo cliente</span>
+                </div>
+                
+                <Input
+                  label="Nombre completo"
+                  value={newClientName}
+                  onChange={(e) => {
+                    setNewClientName(e.target.value);
+                    setClientCreationError('');
+                  }}
+                  placeholder="Nombre del cliente"
+                  required
+                />
+                
+                <Input
+                  label="Email"
+                  type="email"
+                  value={newClientEmail}
+                  onChange={(e) => {
+                    setNewClientEmail(e.target.value);
+                    setClientCreationError('');
+                  }}
+                  placeholder="cliente@ejemplo.com"
+                  required
+                />
+                
+                {clientCreationError && (
+                  <div className="text-red-600 text-sm bg-red-50 p-2 rounded">
+                    {clientCreationError}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Personal Selection */}
