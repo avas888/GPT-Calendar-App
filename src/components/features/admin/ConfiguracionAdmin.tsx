@@ -4,7 +4,7 @@ import { Button } from '../../atoms/Button';
 import { Card } from '../../atoms/Card';
 import { Input } from '../../atoms/Input';
 import { ToastSuccess } from '../../atoms/ToastSuccess';
-import { Settings, Clock, DollarSign, Calendar, Mail } from 'lucide-react';
+import { Settings, Clock, DollarSign, Calendar } from 'lucide-react';
 
 export const ConfiguracionAdmin: React.FC = () => {
   const { config, updateConfig, loading } = useConfig();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Card } from '../../atoms/Card';
 import { Calendar, Users, Settings, BarChart3, DollarSign } from 'lucide-react';
 import { AgendaAdmin } from './AgendaAdmin';
@@ -11,7 +11,6 @@ type TabActivo = 'agenda' | 'personal' | 'servicios' | 'configuracion' | 'report
 
 export const PanelAdministrativo: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   
   // Extract tab from URL path
   const getTabFromPath = (pathname: string): TabActivo => {
@@ -41,9 +40,6 @@ export const PanelAdministrativo: React.FC = () => {
     { id: 'reportes' as TabActivo, label: 'Reportes', icon: BarChart3 }
   ];
 
-  const handleTabClick = (tabId: TabActivo) => {
-    navigate(`/admin/${tabId}`);
-  };
 
   const getCurrentTabLabel = () => {
     const currentTab = tabs.find(tab => tab.id === tabActivo);

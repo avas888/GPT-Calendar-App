@@ -23,24 +23,20 @@ export const MisCitas: React.FC = () => {
   const [citaACancelar, setCitaACancelar] = useState<CitaDetallada | null>(null);
   const [filtro, setFiltro] = useState<'todas' | 'proximas' | 'pasadas'>('proximas');
 
-  useEffect(() => {
-    if (user) {
-      fetchCitas();
-    }
-  }, [user, filtro]);
-
-  const fetchCitas = async () => {
+  const fetchCitas = useCallback(async () => {
     if (!user) return;
 
     try {
       setLoading(true);
-      
-      let query = supabase
+
+      const query = supabase
         .from('citas')
-        .select(`
+        .select(
+          `
           *,
           personal(*)
-        `)
+        `
+        )
         .eq('cliente_id', user.id)
         .order('fecha', { ascending: false })
         .order('hora_inicio', { ascending: false });
@@ -57,7 +53,7 @@ export const MisCitas: React.FC = () => {
               .from('servicios')
               .select('*')
               .in('id', cita.servicios);
-            
+
             return {
               ...cita,
               servicios_detalle: serviciosData || []
@@ -92,7 +88,13 @@ export const MisCitas: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, filtro]);
+
+  useEffect(() => {
+    if (user) {
+      fetchCitas();
+    }
+  }, [user, filtro, fetchCitas]);
 
   const handleCancelarCita = (cita: CitaDetallada) => {
     setCitaACancelar(cita);
@@ -174,14 +176,14 @@ export const MisCitas: React.FC = () => {
       {/* Filter tabs */}
       <Card className="mb-6">
         <div className="flex space-x-1">
-          {[
+          {([
             { key: 'proximas', label: 'Próximas' },
             { key: 'pasadas', label: 'Historial' },
             { key: 'todas', label: 'Todas' }
-          ].map((tab) => (
+          ] as const).map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setFiltro(tab.key as any)}
+              onClick={() => setFiltro(tab.key)}
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 filtro === tab.key
                   ? 'bg-blue-600 text-white'

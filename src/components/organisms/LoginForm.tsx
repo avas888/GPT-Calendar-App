@@ -66,9 +66,13 @@ export const LoginForm: React.FC = () => {
           }
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Authentication error:', err);
-      setError(err.message || 'Error en la autenticación');
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Error en la autenticación');
+      }
     } finally {
       setFormLoading(false);
     }

@@ -1,24 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase, Cita, Usuario, Personal, Servicio } from '../../../lib/supabaseClient';
 import { Button } from '../../atoms/Button';
 import { Card } from '../../atoms/Card';
-import { Input } from '../../atoms/Input';
 import { ToastSuccess } from '../../atoms/ToastSuccess';
 import { CitaFormModal } from './CitaFormModal';
-import { Calendar, Clock, User, Search, Filter, Plus, Edit } from 'lucide-react';
-import { 
-  format, 
-  addDays, 
-  startOfWeek, 
-  endOfWeek, 
-  startOfMonth, 
-  endOfMonth, 
-  addMonths, 
-  subMonths, 
-  eachDayOfInterval, 
-  isSameDay, 
-  isToday,
-  isSameMonth,
+import { Calendar, Clock, User, Plus, Edit } from 'lucide-react';
+import {
+  format,
+  addDays,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
   startOfDay,
   endOfDay
 } from 'date-fns';
@@ -33,7 +26,7 @@ interface CitaCompleta extends Cita {
 export const AgendaAdmin: React.FC = () => {
   const [citas, setCitas] = useState<CitaCompleta[]>([]);
   const [loading, setLoading] = useState(true);
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [fechaSeleccionada] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [dateRangeFilter, setDateRangeFilter] = useState<'none' | 'today' | 'tomorrow' | 'week' | 'month'>('none');
   const [filtroPersonal, setFiltroPersonal] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
@@ -47,7 +40,7 @@ export const AgendaAdmin: React.FC = () => {
     console.log('Fetching citas for date range filter:', dateRangeFilter, 'specific date:', fechaSeleccionada);
     fetchCitas();
     fetchPersonal();
-  }, [fechaSeleccionada, dateRangeFilter, filtroPersonal, filtroEstado]);
+  }, [fechaSeleccionada, dateRangeFilter, filtroPersonal, filtroEstado, fetchCitas]);
 
   const fetchPersonal = async () => {
     try {
@@ -64,7 +57,7 @@ export const AgendaAdmin: React.FC = () => {
     }
   };
 
-  const fetchCitas = async () => {
+  const fetchCitas = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -85,11 +78,12 @@ export const AgendaAdmin: React.FC = () => {
           filterStartDate = startOfDay(new Date());
           filterEndDate = endOfDay(new Date());
           break;
-        case 'tomorrow':
+        case 'tomorrow': {
           const tomorrow = addDays(new Date(), 1);
           filterStartDate = startOfDay(tomorrow);
           filterEndDate = endOfDay(tomorrow);
           break;
+        }
         case 'week':
           filterStartDate = startOfWeek(new Date(), { weekStartsOn: 1 });
           filterEndDate = endOfWeek(new Date(), { weekStartsOn: 1 });
@@ -155,7 +149,7 @@ export const AgendaAdmin: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRangeFilter, fechaSeleccionada, filtroPersonal, filtroEstado]);
 
   const handleEditCita = (cita: CitaCompleta) => {
     setEditingCita(cita);
@@ -280,11 +274,13 @@ export const AgendaAdmin: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Filtro de fecha
             </label>
-            <select
-              value={dateRangeFilter}
-              onChange={(e) => setDateRangeFilter(e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
+              <select
+                value={dateRangeFilter}
+                onChange={(e) =>
+                  setDateRangeFilter(e.target.value as 'none' | 'today' | 'tomorrow' | 'week' | 'month')
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
               <option value="none">Fecha específica</option>
               <option value="today">Hoy</option>
               <option value="tomorrow">Mañana</option>
