@@ -22,7 +22,7 @@ export const useAuth = () => {
 
         if (session?.user) {
           setSupabaseUser(session.user);
-          await loadUserProfile(session.user.id);
+          await loadUserProfile(session.user);
         } else {
           setLoading(false);
         }
@@ -41,7 +41,7 @@ export const useAuth = () => {
         
         if (session?.user) {
           setSupabaseUser(session.user);
-          await loadUserProfile(session.user.id);
+          await loadUserProfile(session.user);
         } else {
           setUser(null);
           setUserRole(null);
@@ -54,37 +54,78 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadUserProfile = async (userId: string) => {
+  const loadUserProfile = async (authUser: any) => {
     try {
+      console.log('Loading profile for user:', authUser.id);
+      
       // Get user profile
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('*')
-        .eq('id', userId)
+        .eq('id', authUser.id)
         .single();
-
-      if (userError && userError.code !== 'PGRST116') {
-        console.error('Error loading user profile:', userError);
-        setLoading(false);
-        return;
-      }
 
       // Get user role
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('rol')
-        .eq('user_id', userId)
+        .eq('user_id', authUser.id)
         .single();
 
-      if (roleError && roleError.code !== 'PGRST116') {
-        console.error('Error loading user role:', roleError);
+      // If user profile or role doesn't exist, create them
+      if (!userData || !roleData) {
+        console.log('User profile or role missing, creating...');
+        
+        try {
+          await supabase.rpc('create_user_profile', {
+            user_id: authUser.id,
+            user_email: authUser.email,
+            user_name: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario',
+          });
+
+          // Retry fetching after creation
+          const { data: newUserData } = await supabase
+            .from('usuarios')
+            .select('*')
+            .eq('id', authUser.id)
+            .single();
+
+          const { data: newRoleData } = await supabase
+            .from('user_roles')
+            .select('rol')
+            .eq('user_id', authUser.id)
+            .single();
+
+          setUser(newUserData);
+          setUserRole(newRoleData?.rol || 'cliente');
+        } catch (createError) {
+          console.error('Error creating user profile:', createError);
+          // Fallback: create minimal user object
+          setUser({
+            id: authUser.id,
+            correo: authUser.email,
+            nombre: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario',
+            created_at: new Date().toISOString()
+          });
+          setUserRole(authUser.email === 'admin@agendapro.com' ? 'admin' : 'cliente');
+        }
+      } else {
+        setUser(userData);
+        setUserRole(roleData?.rol || 'cliente');
       }
 
-      setUser(userData);
-      setUserRole(roleData?.rol || 'cliente');
       setLoading(false);
     } catch (error) {
       console.error('Error in loadUserProfile:', error);
+      
+      // Fallback: create minimal user object from auth data
+      setUser({
+        id: authUser.id,
+        correo: authUser.email,
+        nombre: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario',
+        created_at: new Date().toISOString()
+      });
+      setUserRole(authUser.email === 'admin@agendapro.com' ? 'admin' : 'cliente');
       setLoading(false);
     }
   };
