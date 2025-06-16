@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase, Cita, Usuario, Servicio } from '../../../lib/supabaseClient';
 import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '../../atoms/Button';
 import { Card } from '../../atoms/Card';
 import { ConfirmDialog } from '../../atoms/ConfirmDialog';
 import { ToastSuccess } from '../../atoms/ToastSuccess';
-import { Calendar, Clock, User, CheckCircle, X, AlertCircle } from 'lucide-react';
-import { format, startOfDay, endOfDay, addDays } from 'date-fns';
+import { Calendar, Clock, User, CheckCircle, X } from 'lucide-react';
+import { format, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface CitaDetallada extends Cita {
@@ -24,18 +24,12 @@ export const AgendaPersonal: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [actionCita, setActionCita] = useState<{ cita: CitaDetallada; action: 'completar' | 'cancelar' } | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      fetchCitas();
-    }
-  }, [user, fechaSeleccionada]);
-
-  const fetchCitas = async () => {
+  const fetchCitas = useCallback(async () => {
     if (!user) return;
 
     try {
       setLoading(true);
-      
+
       // First get the personal record for this user
       const { data: personalData, error: personalError } = await supabase
         .from('personal')
@@ -66,7 +60,7 @@ export const AgendaPersonal: React.FC = () => {
               .from('servicios')
               .select('*')
               .in('id', cita.servicios);
-            
+
             return {
               ...cita,
               servicios_detalle: serviciosData || []
@@ -85,7 +79,13 @@ export const AgendaPersonal: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, fechaSeleccionada]);
+
+  useEffect(() => {
+    if (user) {
+      fetchCitas();
+    }
+  }, [user, fechaSeleccionada, fetchCitas]);
 
   const handleActionCita = (cita: CitaDetallada, action: 'completar' | 'cancelar') => {
     setActionCita({ cita, action });

@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { type User } from '@supabase/supabase-js';
 import { supabase, Usuario } from '../lib/supabaseClient';
 
 export const useAuth = () => {
   const [user, setUser] = useState<Usuario | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [supabaseUser, setSupabaseUser] = useState<any>(null);
+  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
 
   useEffect(() => {
     console.log('🔐 useAuth: Initializing authentication...');
@@ -34,9 +35,9 @@ export const useAuth = () => {
       console.log('🔐 useAuth: Cleaning up auth subscription');
       subscription.unsubscribe();
     };
-  }, []);
+  }, [checkSession]);
 
-  const checkSession = async () => {
+  const checkSession = useCallback(async () => {
     try {
       console.log('🔐 useAuth: Checking existing session...');
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -58,9 +59,9 @@ export const useAuth = () => {
       console.error('🔐 useAuth: Error checking session:', error);
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleUserSession = async (authUser: any) => {
+  const handleUserSession = async (authUser: User) => {
     try {
       console.log('🔐 useAuth: Handling user session for:', authUser.email);
       setSupabaseUser(authUser);

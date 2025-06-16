@@ -576,7 +576,12 @@ export const CitaFormModal: React.FC<CitaFormModalProps> = ({
                 </label>
                 <select
                   value={formData.estado}
-                  onChange={(e) => setFormData(prev => ({ ...prev, estado: e.target.value as any }))}
+                  onChange={(e) =>
+                    setFormData(prev => ({
+                      ...prev,
+                      estado: e.target.value as 'confirmada' | 'realizada' | 'cancelada' | 'no_asistio'
+                    }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="confirmada">Confirmada</option>

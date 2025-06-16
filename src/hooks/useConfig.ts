@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase, Configuracion } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient';
 
 export const useConfig = () => {
   const [config, setConfig] = useState<Record<string, string>>({});

@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase, Servicio, Personal } from '../../../lib/supabaseClient';
 import { calcularDuracionTotal, calcularPrecioTotal, generarHorariosDisponibles } from '../../../lib/calculos';
 import { Button } from '../../atoms/Button';
-import { Input } from '../../atoms/Input';
 import { Card } from '../../atoms/Card';
 import { ToastSuccess } from '../../atoms/ToastSuccess';
 import { useAuth } from '../../../hooks/useAuth';
@@ -10,9 +9,6 @@ import { Calendar, Clock, DollarSign, User } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-interface PasoReserva {
-  paso: 'fecha' | 'servicios' | 'personal' | 'confirmacion';
-}
 
 export const ReservarCita: React.FC = () => {
   const { user } = useAuth();
@@ -40,7 +36,7 @@ export const ReservarCita: React.FC = () => {
     if (reserva.fecha && reserva.serviciosSeleccionados.length > 0 && reserva.personalSeleccionado) {
       fetchHorariosDisponibles();
     }
-  }, [reserva.fecha, reserva.serviciosSeleccionados, reserva.personalSeleccionado]);
+  }, [reserva.fecha, reserva.serviciosSeleccionados, reserva.personalSeleccionado, fetchHorariosDisponibles]);
 
   const fetchServicios = async () => {
     try {
@@ -72,7 +68,7 @@ export const ReservarCita: React.FC = () => {
     }
   };
 
-  const fetchHorariosDisponibles = async () => {
+  const fetchHorariosDisponibles = useCallback(async () => {
     if (!reserva.fecha || !reserva.personalSeleccionado) return;
 
     try {
@@ -106,7 +102,7 @@ export const ReservarCita: React.FC = () => {
     } catch (error) {
       console.error('Error fetching horarios:', error);
     }
-  };
+  }, [reserva.fecha, reserva.personalSeleccionado, reserva.serviciosSeleccionados]);
 
   const confirmarReserva = async () => {
     if (!user || !reserva.personalSeleccionado) return;

@@ -1,5 +1,16 @@
 // Electronic Invoicing Client for DIAN integration
 // This module handles electronic invoicing integration with Colombian DIAN
+import type { Cita, Usuario } from './supabaseClient';
+
+export interface ClienteData extends Pick<Usuario, 'id' | 'nombre'> {
+  nit?: string;
+}
+
+export interface ServicioData {
+  id: string;
+  nombre: string;
+  precio: number;
+}
 
 export interface FacturaElectronica {
   numero: string;
@@ -151,11 +162,11 @@ export class FacturacionClient {
 
   // Helper method to generate invoice from cita
   generarFacturaDesdeReserva(
-    cita: any,
-    cliente: any,
-    servicios: any[]
+    cita: Cita,
+    cliente: ClienteData,
+    servicios: ServicioData[]
   ): FacturaElectronica {
-    const items: FacturaItem[] = servicios.map((servicio, index) => ({
+    const items: FacturaItem[] = servicios.map(servicio => ({
       codigo: `SRV-${servicio.id}`,
       descripcion: servicio.nombre,
       cantidad: 1,
