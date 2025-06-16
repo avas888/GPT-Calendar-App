@@ -16,7 +16,6 @@ export const GestionServicios: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [editingServicio, setEditingServicio] = useState<Servicio | null>(null);
-  const [servicioToDelete, setServicioToDelete] = useState<Servicio | null>(null);
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -106,48 +105,28 @@ export const GestionServicios: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleDelete = (servicio: Servicio) => {
-    setServicioToDelete(servicio);
+  const handleDelete = () => {
     setShowConfirmDialog(true);
   };
 
   const confirmarEliminacion = async () => {
-    if (!servicioToDelete) return;
+    if (!editingServicio) return;
 
     try {
       const { error } = await supabase
         .from('servicios')
         .delete()
-        .eq('id', servicioToDelete.id);
+        .eq('id', editingServicio.id);
 
       if (error) throw error;
 
       setToastMessage('Servicio eliminado exitosamente');
       setShowToast(true);
+      setShowModal(false);
+      resetForm();
       await fetchServicios();
     } catch (error) {
       console.error('Error deleting servicio:', error);
-    }
-  };
-
-  const toggleActivo = async (servicio: Servicio) => {
-    try {
-      const { error } = await supabase
-        .from('servicios')
-        .update({ activo: !servicio.activo })
-        .eq('id', servicio.id);
-
-      if (error) throw error;
-
-      setToastMessage(
-        servicio.activo 
-          ? 'Servicio desactivado exitosamente' 
-          : 'Servicio activado exitosamente'
-      );
-      setShowToast(true);
-      await fetchServicios();
-    } catch (error) {
-      console.error('Error toggling servicio status:', error);
     }
   };
 
@@ -229,27 +208,15 @@ export const GestionServicios: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex space-x-2">
+              <div className="flex">
                 <Button
                   size="sm"
                   variant="secondary"
                   onClick={() => handleEdit(servicio)}
-                  className="flex items-center flex-1"
+                  className="flex items-center w-full"
                 >
                   <Edit className="w-4 h-4 mr-1" />
                   Editar
-                </Button>
-                <Button
-                  size="sm"
-                  variant={servicio.activo ? 'warning' : 'success'}
-                  onClick={() => toggleActivo(servicio)}
-                  className="flex items-center"
-                >
-                  {servicio.activo ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
                 </Button>
               </div>
             </Card>
@@ -328,7 +295,7 @@ export const GestionServicios: React.FC = () => {
               <Button
                 type="button"
                 variant="error"
-                onClick={() => handleDelete(editingServicio)}
+                onClick={handleDelete}
                 className="flex items-center"
               >
                 <Trash2 className="w-4 h-4 mr-1" />
@@ -345,7 +312,7 @@ export const GestionServicios: React.FC = () => {
         onClose={() => setShowConfirmDialog(false)}
         onConfirm={confirmarEliminacion}
         title="Eliminar Servicio"
-        message={`¿Estás seguro de que quieres eliminar el servicio "${servicioToDelete?.nombre}"? Esta acción no se puede deshacer.`}
+        message={`¿Estás seguro de que quieres eliminar el servicio "${editingServicio?.nombre}"? Esta acción no se puede deshacer.`}
         confirmText="Eliminar"
         variant="error"
       />
