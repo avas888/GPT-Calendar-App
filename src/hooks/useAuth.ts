@@ -46,78 +46,125 @@ export const useAuth = () => {
       setSupabaseUser(authUser);
       addDebugStep('handleUserSession_supabase_user_set');
       
-      // Use the database RPC function to handle user creation/update
-      addDebugStep('handleUserSession_calling_rpc_function');
-      
-      const { data: rpcResult, error: rpcError } = await supabase.rpc('handle_auth_user_creation', {
-        auth_user_id: authUser.id,
-        auth_email: authUser.email || '',
-        auth_name: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario'
-      });
-
-      if (rpcError) {
-        addDebugStep('handleUserSession_rpc_error', null, rpcError.message);
-        console.error('🔐 RPC Error:', rpcError);
-        
-        // Fallback to direct database operations if RPC fails
-        addDebugStep('handleUserSession_rpc_fallback_starting');
-        await handleUserSessionFallback(authUser);
-        return;
-      }
-
-      // Check if RPC result indicates success
-      if (rpcResult && typeof rpcResult === 'object' && rpcResult.success === false) {
-        addDebugStep('handleUserSession_rpc_returned_failure', rpcResult);
-        console.error('🔐 RPC returned failure:', rpcResult);
-        
-        // Fallback to direct database operations
-        addDebugStep('handleUserSession_rpc_failure_fallback_starting');
-        await handleUserSessionFallback(authUser);
-        return;
-      }
-
-      addDebugStep('handleUserSession_rpc_success', rpcResult);
-
-      // Fetch the user profile from database after RPC call
+      // Try to fetch existing user profile first
       addDebugStep('handleUserSession_fetching_user_profile');
       
-      const { data: userProfile, error: userError } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      if (userError) {
-        addDebugStep('handleUserSession_user_fetch_error', null, userError.message);
-        throw userError;
-      }
-
-      if (!userProfile) {
-        addDebugStep('handleUserSession_no_user_profile_found');
-        throw new Error('User profile not found after RPC call');
-      }
-
-      addDebugStep('handleUserSession_user_profile_fetched', userProfile);
-      setUser(userProfile);
-
-      // Fetch the user role from database
-      addDebugStep('handleUserSession_fetching_user_role');
+      let userProfile: Usuario | null = null;
       
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('rol')
-        .eq('user_id', authUser.id)
-        .single();
+      try {
+        const { data: existingUser, error: selectError } = await supabase
+          .from('usuarios')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
 
-      if (roleError) {
-        addDebugStep('handleUserSession_role_fetch_error', null, roleError.message);
-        // Default to admin for development if role fetch fails
-        setUserRole('admin');
-        addDebugStep('handleUserSession_role_defaulted_to_admin');
-      } else {
-        addDebugStep('handleUserSession_role_fetched', roleData);
-        setUserRole(roleData.rol);
+        if (selectError && selectError.code !== 'PGRST116') { // PGRST116 = no rows returned
+          addDebugStep('handleUserSession_user_select_error', null, selectError.message);
+        }
+
+        if (existingUser) {
+          addDebugStep('handleUserSession_existing_user_found', existingUser);
+          userProfile = existingUser;
+        }
+      } catch (error) {
+        addDebugStep('handleUserSession_user_fetch_failed', null, error instanceof Error ? error.message : 'Unknown error');
       }
+
+      // If no user profile found, try to create one
+      if (!userProfile) {
+        addDebugStep('handleUserSession_creating_user_profile');
+        
+        try {
+          const { data: upsertedUser, error: upsertError } = await supabase
+            .from('usuarios')
+            .upsert([{
+              id: authUser.id,
+              correo: authUser.email || '',
+              nombre: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario'
+            }], {
+              onConflict: 'id'
+            })
+            .select()
+            .single();
+
+          if (upsertError) {
+            addDebugStep('handleUserSession_user_upsert_error', null, upsertError.message);
+          } else {
+            addDebugStep('handleUserSession_user_upsert_success', upsertedUser);
+            userProfile = upsertedUser;
+          }
+        } catch (error) {
+          addDebugStep('handleUserSession_user_upsert_failed', null, error instanceof Error ? error.message : 'Unknown error');
+        }
+      }
+
+      // If still no user profile, create a mock one for development
+      if (!userProfile) {
+        addDebugStep('handleUserSession_creating_mock_user');
+        userProfile = {
+          id: authUser.id,
+          correo: authUser.email || '',
+          nombre: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario',
+          created_at: new Date().toISOString()
+        };
+      }
+
+      setUser(userProfile);
+      addDebugStep('handleUserSession_user_set', userProfile);
+
+      // Handle role assignment
+      addDebugStep('handleUserSession_handling_role');
+      
+      let userRoleValue = 'admin'; // Default to admin for development
+      
+      try {
+        // Try to fetch existing role
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('rol')
+          .eq('user_id', authUser.id)
+          .single();
+
+        if (roleError && roleError.code !== 'PGRST116') {
+          addDebugStep('handleUserSession_role_fetch_error', null, roleError.message);
+        }
+
+        if (roleData) {
+          addDebugStep('handleUserSession_role_found', roleData);
+          userRoleValue = roleData.rol;
+        } else {
+          // Try to create role
+          addDebugStep('handleUserSession_creating_role');
+          
+          const isAdminEmail = authUser.email === 'admin@agendapro.com';
+          const defaultRole = isAdminEmail ? 'admin' : 'cliente';
+          
+          try {
+            const { error: roleUpsertError } = await supabase
+              .from('user_roles')
+              .upsert([{
+                user_id: authUser.id,
+                rol: defaultRole
+              }], {
+                onConflict: 'user_id,rol'
+              });
+
+            if (roleUpsertError) {
+              addDebugStep('handleUserSession_role_upsert_error', null, roleUpsertError.message);
+            } else {
+              addDebugStep('handleUserSession_role_upsert_success');
+              userRoleValue = defaultRole;
+            }
+          } catch (error) {
+            addDebugStep('handleUserSession_role_upsert_failed', null, error instanceof Error ? error.message : 'Unknown error');
+          }
+        }
+      } catch (error) {
+        addDebugStep('handleUserSession_role_handling_failed', null, error instanceof Error ? error.message : 'Unknown error');
+      }
+
+      setUserRole(userRoleValue);
+      addDebugStep('handleUserSession_role_set', { role: userRoleValue });
 
       addDebugStep('handleUserSession_completed_successfully');
 
@@ -126,98 +173,6 @@ export const useAuth = () => {
       console.error('🔐 useAuth: Error handling user session:', error);
       
       // Create fallback user for development
-      await handleUserSessionFallback(authUser);
-    } finally {
-      // CRITICAL: Always set loading to false when handleUserSession completes
-      addDebugStep('handleUserSession_setting_loading_false');
-      setLoading(false);
-    }
-  };
-
-  // Fallback method for when RPC fails
-  const handleUserSessionFallback = async (authUser: User) => {
-    try {
-      addDebugStep('handleUserSessionFallback_start');
-      
-      // Try to get existing user first
-      const { data: existingUser, error: selectError } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      if (selectError && selectError.code !== 'PGRST116') { // PGRST116 = no rows returned
-        addDebugStep('handleUserSessionFallback_select_error', null, selectError.message);
-      }
-
-      if (existingUser) {
-        addDebugStep('handleUserSessionFallback_existing_user_found', existingUser);
-        setUser(existingUser);
-      } else {
-        addDebugStep('handleUserSessionFallback_creating_new_profile');
-        
-        // Try upsert for user profile
-        const { data: upsertedUser, error: upsertError } = await supabase
-          .from('usuarios')
-          .upsert([{
-            id: authUser.id,
-            correo: authUser.email || '',
-            nombre: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario'
-          }], {
-            onConflict: 'id'
-          })
-          .select()
-          .single();
-
-        if (upsertError) {
-          addDebugStep('handleUserSessionFallback_upsert_error', null, upsertError.message);
-          
-          // Create a mock user for development
-          const mockUser: Usuario = {
-            id: authUser.id,
-            correo: authUser.email || '',
-            nombre: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario',
-            created_at: new Date().toISOString()
-          };
-          setUser(mockUser);
-          addDebugStep('handleUserSessionFallback_mock_user_created', mockUser);
-        } else {
-          addDebugStep('handleUserSessionFallback_upsert_success', upsertedUser);
-          setUser(upsertedUser);
-        }
-      }
-
-      // Handle role assignment
-      const isAdminEmail = authUser.email === 'admin@agendapro.com';
-      const defaultRole = isAdminEmail ? 'admin' : 'cliente';
-
-      // Set role immediately for development
-      setUserRole('admin');
-      addDebugStep('handleUserSessionFallback_role_set', { role: 'admin' });
-
-      // Try to create role in database (background operation)
-      supabase
-        .from('user_roles')
-        .upsert([{
-          user_id: authUser.id,
-          rol: defaultRole
-        }], {
-          onConflict: 'user_id,rol'
-        })
-        .then(({ error }) => {
-          if (error) {
-            addDebugStep('handleUserSessionFallback_role_upsert_error', null, error.message);
-          } else {
-            addDebugStep('handleUserSessionFallback_role_upsert_success');
-          }
-        });
-
-      addDebugStep('handleUserSessionFallback_completed');
-
-    } catch (error) {
-      addDebugStep('handleUserSessionFallback_error', null, error instanceof Error ? error.message : 'Unknown error');
-      
-      // Final fallback - create mock user
       if (authUser.email) {
         const fallbackUser: Usuario = {
           id: authUser.id,
@@ -227,11 +182,11 @@ export const useAuth = () => {
         };
         setUser(fallbackUser);
         setUserRole('admin');
-        addDebugStep('handleUserSessionFallback_final_fallback', fallbackUser);
+        addDebugStep('handleUserSession_fallback_user_created', fallbackUser);
       }
     } finally {
-      // CRITICAL: Always set loading to false in fallback
-      addDebugStep('handleUserSessionFallback_setting_loading_false');
+      // CRITICAL: Always set loading to false when handleUserSession completes
+      addDebugStep('handleUserSession_setting_loading_false');
       setLoading(false);
     }
   };
@@ -331,20 +286,13 @@ export const useAuth = () => {
       addDebugStep('signIn_success', { email, hasUser: !!data.user, hasSession: !!data.session });
       
       // handleUserSession will be called automatically by the auth state change listener
-      // but we can also call it here to ensure immediate state update
-      if (data.user) {
-        await handleUserSession(data.user);
-      }
-      
       return data;
     } catch (error) {
       addDebugStep('signIn_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
       throw error;
     } finally {
-      // CRITICAL: Set loading to false in signIn finally block
-      // Note: handleUserSession will also set loading to false, but this ensures it's set even if handleUserSession fails
-      addDebugStep('signIn_setting_loading_false_finally');
-      setLoading(false);
+      // Note: Don't set loading to false here as handleUserSession will handle it
+      addDebugStep('signIn_completed');
     }
   };
 
@@ -385,12 +333,7 @@ export const useAuth = () => {
 
       addDebugStep('signUp_success', { email, hasUser: !!data.user, hasSession: !!data.session });
       
-      // If user is created and confirmed immediately, handle the session
-      if (data.user && data.session) {
-        addDebugStep('signUp_immediate_confirmation');
-        await handleUserSession(data.user);
-      }
-
+      // handleUserSession will be called automatically by the auth state change listener
       return {
         user: data.user,
         session: data.session
@@ -412,9 +355,8 @@ export const useAuth = () => {
       
       throw error;
     } finally {
-      // CRITICAL: Set loading to false in signUp finally block
-      addDebugStep('signUp_setting_loading_false_finally');
-      setLoading(false);
+      // Note: Don't set loading to false here as handleUserSession will handle it
+      addDebugStep('signUp_completed');
     }
   };
 

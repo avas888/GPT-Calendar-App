@@ -36,12 +36,6 @@ export const AgendaAdmin: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  useEffect(() => {
-    console.log('Fetching citas for date range filter:', dateRangeFilter, 'specific date:', fechaSeleccionada);
-    fetchCitas();
-    fetchPersonal();
-  }, [fechaSeleccionada, dateRangeFilter, filtroPersonal, filtroEstado, fetchCitas]);
-
   const fetchPersonal = async () => {
     try {
       const { data, error } = await supabase
@@ -149,6 +143,12 @@ export const AgendaAdmin: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  }, [dateRangeFilter, fechaSeleccionada, filtroPersonal, filtroEstado]);
+
+  useEffect(() => {
+    console.log('Fetching citas for date range filter:', dateRangeFilter, 'specific date:', fechaSeleccionada);
+    fetchCitas();
+    fetchPersonal();
   }, [dateRangeFilter, fechaSeleccionada, filtroPersonal, filtroEstado]);
 
   const handleEditCita = (cita: CitaCompleta) => {
