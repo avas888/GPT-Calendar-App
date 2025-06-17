@@ -32,12 +32,6 @@ export const ReservarCita: React.FC = () => {
     fetchPersonal();
   }, []);
 
-  useEffect(() => {
-    if (reserva.fecha && reserva.serviciosSeleccionados.length > 0 && reserva.personalSeleccionado) {
-      fetchHorariosDisponibles();
-    }
-  }, [reserva.fecha, reserva.serviciosSeleccionados, reserva.personalSeleccionado, fetchHorariosDisponibles]);
-
   const fetchServicios = async () => {
     try {
       const { data, error } = await supabase
@@ -103,6 +97,12 @@ export const ReservarCita: React.FC = () => {
       console.error('Error fetching horarios:', error);
     }
   }, [reserva.fecha, reserva.personalSeleccionado, reserva.serviciosSeleccionados]);
+
+  useEffect(() => {
+    if (reserva.fecha && reserva.serviciosSeleccionados.length > 0 && reserva.personalSeleccionado) {
+      fetchHorariosDisponibles();
+    }
+  }, [reserva.fecha, reserva.serviciosSeleccionados, reserva.personalSeleccionado, fetchHorariosDisponibles]);
 
   const confirmarReserva = async () => {
     if (!user || !reserva.personalSeleccionado) return;
