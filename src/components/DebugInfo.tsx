@@ -17,7 +17,7 @@ export const DebugInfo: React.FC = () => {
           borderTop: '1px solid #e5e7eb',
         }}
       >
-        <Card className="mb-4 bg-green-50 border-green-200">
+        <Card className="mb-4 bg-green-50 border-green-200 max-h-40 overflow-y-auto">
           <h3 className="font-medium text-green-800 mb-2">MVP Development Mode</h3>
           <div className="text-sm text-green-700 space-y-1">
             <div>✅ Authentication bypassed</div>

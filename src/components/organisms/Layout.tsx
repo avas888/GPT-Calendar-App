@@ -127,7 +127,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </nav>
         
         {/* Main Content Area */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-40">
           {children}
         </main>
       </div>
