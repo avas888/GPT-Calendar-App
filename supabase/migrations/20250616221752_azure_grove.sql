@@ -17,6 +17,9 @@ BEGIN
     new_admin_id := gen_random_uuid();
     
   -- DELETE FROM auth.users WHERE email = 'admin5@agendapro.com'; with only the required fields
+    
+    DELETE FROM auth.users WHERE email = 'admin5@agendapro.com';
+
     INSERT INTO auth.users (
         instance_id,
         id,

@@ -2,6 +2,8 @@
 -- You can use this temporarily and delete the old one later
 
 -- First, insert into auth.users (this creates the authentication record)
+DELETE FROM auth.users WHERE email = 'admin5@agendapro.com';
+
 INSERT INTO auth.users (
   instance_id,
   id,
