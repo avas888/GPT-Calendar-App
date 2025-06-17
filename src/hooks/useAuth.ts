@@ -233,9 +233,9 @@ export const useAuth = () => {
     try {
       addDebugStep('checkSession_start');
       
-      // Reduced timeout for session check
+      // Increased timeout for session check from 2000ms to 5000ms
       const sessionTimeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Session check timeout')), 2000);
+        setTimeout(() => reject(new Error('Session check timeout')), 5000);
       });
 
       const sessionPromise = supabase.auth.getSession();
