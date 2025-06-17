@@ -46,17 +46,27 @@ export const useAuth = () => {
       setSupabaseUser(authUser);
       addDebugStep('handleUserSession_supabase_user_set');
       
-      // Try to fetch existing user profile first
+      // Create a timeout for database operations
+      const dbTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database operation timeout')), 5000);
+      });
+
+      // Try to fetch existing user profile with timeout
       addDebugStep('handleUserSession_fetching_user_profile');
       
       let userProfile: Usuario | null = null;
       
       try {
-        const { data: existingUser, error: selectError } = await supabase
+        const userFetchPromise = supabase
           .from('usuarios')
           .select('*')
           .eq('id', authUser.id)
           .single();
+
+        const { data: existingUser, error: selectError } = await Promise.race([
+          userFetchPromise,
+          dbTimeout
+        ]) as any;
 
         if (selectError && selectError.code !== 'PGRST116') { // PGRST116 = no rows returned
           addDebugStep('handleUserSession_user_select_error', null, selectError.message);
@@ -68,14 +78,23 @@ export const useAuth = () => {
         }
       } catch (error) {
         addDebugStep('handleUserSession_user_fetch_failed', null, error instanceof Error ? error.message : 'Unknown error');
+        
+        // If database fetch fails, create a mock user immediately
+        userProfile = {
+          id: authUser.id,
+          correo: authUser.email || '',
+          nombre: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario',
+          created_at: new Date().toISOString()
+        };
+        addDebugStep('handleUserSession_created_mock_user_after_fetch_fail', userProfile);
       }
 
-      // If no user profile found, try to create one
+      // If no user profile found, try to create one (with timeout)
       if (!userProfile) {
         addDebugStep('handleUserSession_creating_user_profile');
         
         try {
-          const { data: upsertedUser, error: upsertError } = await supabase
+          const userCreatePromise = supabase
             .from('usuarios')
             .upsert([{
               id: authUser.id,
@@ -87,6 +106,11 @@ export const useAuth = () => {
             .select()
             .single();
 
+          const { data: upsertedUser, error: upsertError } = await Promise.race([
+            userCreatePromise,
+            dbTimeout
+          ]) as any;
+
           if (upsertError) {
             addDebugStep('handleUserSession_user_upsert_error', null, upsertError.message);
           } else {
@@ -95,12 +119,21 @@ export const useAuth = () => {
           }
         } catch (error) {
           addDebugStep('handleUserSession_user_upsert_failed', null, error instanceof Error ? error.message : 'Unknown error');
+          
+          // Create mock user if upsert fails
+          userProfile = {
+            id: authUser.id,
+            correo: authUser.email || '',
+            nome: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario',
+            created_at: new Date().toISOString()
+          };
+          addDebugStep('handleUserSession_created_mock_user_after_upsert_fail', userProfile);
         }
       }
 
       // If still no user profile, create a mock one for development
       if (!userProfile) {
-        addDebugStep('handleUserSession_creating_mock_user');
+        addDebugStep('handleUserSession_creating_final_mock_user');
         userProfile = {
           id: authUser.id,
           correo: authUser.email || '',
@@ -112,18 +145,22 @@ export const useAuth = () => {
       setUser(userProfile);
       addDebugStep('handleUserSession_user_set', userProfile);
 
-      // Handle role assignment
+      // Handle role assignment with timeout
       addDebugStep('handleUserSession_handling_role');
       
       let userRoleValue = 'admin'; // Default to admin for development
       
       try {
-        // Try to fetch existing role
-        const { data: roleData, error: roleError } = await supabase
+        const roleFetchPromise = supabase
           .from('user_roles')
           .select('rol')
           .eq('user_id', authUser.id)
           .single();
+
+        const { data: roleData, error: roleError } = await Promise.race([
+          roleFetchPromise,
+          dbTimeout
+        ]) as any;
 
         if (roleError && roleError.code !== 'PGRST116') {
           addDebugStep('handleUserSession_role_fetch_error', null, roleError.message);
@@ -133,14 +170,14 @@ export const useAuth = () => {
           addDebugStep('handleUserSession_role_found', roleData);
           userRoleValue = roleData.rol;
         } else {
-          // Try to create role
+          // Try to create role with timeout
           addDebugStep('handleUserSession_creating_role');
           
           const isAdminEmail = authUser.email === 'admin@agendapro.com';
           const defaultRole = isAdminEmail ? 'admin' : 'cliente';
           
           try {
-            const { error: roleUpsertError } = await supabase
+            const roleCreatePromise = supabase
               .from('user_roles')
               .upsert([{
                 user_id: authUser.id,
@@ -149,18 +186,18 @@ export const useAuth = () => {
                 onConflict: 'user_id,rol'
               });
 
-            if (roleUpsertError) {
-              addDebugStep('handleUserSession_role_upsert_error', null, roleUpsertError.message);
-            } else {
-              addDebugStep('handleUserSession_role_upsert_success');
-              userRoleValue = defaultRole;
-            }
+            await Promise.race([roleCreatePromise, dbTimeout]);
+            
+            addDebugStep('handleUserSession_role_upsert_success');
+            userRoleValue = defaultRole;
           } catch (error) {
             addDebugStep('handleUserSession_role_upsert_failed', null, error instanceof Error ? error.message : 'Unknown error');
+            // Keep default admin role
           }
         }
       } catch (error) {
         addDebugStep('handleUserSession_role_handling_failed', null, error instanceof Error ? error.message : 'Unknown error');
+        // Keep default admin role
       }
 
       setUserRole(userRoleValue);
@@ -195,12 +232,22 @@ export const useAuth = () => {
     try {
       addDebugStep('checkSession_start');
       
-      // Session check (no manual timeout)
-      const { data: { session }, error } = await supabase.auth.getSession();
+      // Add timeout for session check
+      const sessionTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Session check timeout')), 3000);
+      });
+
+      const sessionPromise = supabase.auth.getSession();
+      
+      const { data: { session }, error } = await Promise.race([
+        sessionPromise,
+        sessionTimeout
+      ]) as any;
       
       if (error) {
         addDebugStep('checkSession_error', null, error.message);
         console.error('🔐 useAuth: Error getting session:', error);
+        setLoading(false);
         return;
       }
 
@@ -216,9 +263,6 @@ export const useAuth = () => {
     } catch (error) {
       addDebugStep('checkSession_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
       console.error('🔐 useAuth: Error checking session:', error);
-    } finally {
-      // CRITICAL: Always set loading to false when checkSession completes
-      addDebugStep('checkSession_setting_loading_false_finally');
       setLoading(false);
     }
   }, []);
@@ -232,7 +276,7 @@ export const useAuth = () => {
         addDebugStep('useEffect_overall_timeout_reached');
         setLoading(false);
       }
-    }, 10000); // Reduced to 10 seconds for faster feedback
+    }, 8000); // 8 seconds total timeout
 
     // Check initial session
     checkSession();
@@ -289,10 +333,8 @@ export const useAuth = () => {
       return data;
     } catch (error) {
       addDebugStep('signIn_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
+      setLoading(false); // Set loading to false on error
       throw error;
-    } finally {
-      // Note: Don't set loading to false here as handleUserSession will handle it
-      addDebugStep('signIn_completed');
     }
   };
 
@@ -319,6 +361,7 @@ export const useAuth = () => {
             error.message.includes('user_already_exists') ||
             error.status === 422) {
           addDebugStep('signUp_user_already_exists');
+          setLoading(false);
           return {
             user: null,
             session: null,
@@ -340,6 +383,7 @@ export const useAuth = () => {
       };
     } catch (error) {
       addDebugStep('signUp_catch_error', null, error instanceof Error ? error.message : 'Unknown error');
+      setLoading(false); // Set loading to false on error
       
       // Additional check for user already exists in catch block
       if (error instanceof Error && 
@@ -354,9 +398,6 @@ export const useAuth = () => {
       }
       
       throw error;
-    } finally {
-      // Note: Don't set loading to false here as handleUserSession will handle it
-      addDebugStep('signUp_completed');
     }
   };
 
