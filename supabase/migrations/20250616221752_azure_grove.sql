@@ -13,7 +13,7 @@ DO $$
 DECLARE
     new_admin_id uuid;
 BEGIN
-    -- Generate a new UUID for the admin user
+    -- Generate a new UUID for the admin users
     new_admin_id := gen_random_uuid();
     
   -- Insert into auth.users with only the required fields
