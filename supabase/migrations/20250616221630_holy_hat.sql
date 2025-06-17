@@ -24,7 +24,6 @@ INSERT INTO auth.users (
   now(),
   now(),
   now(),
-  now(),
   '{"provider": "email", "providers": ["email"]}',
   '{"nombre": "Admin User"}'
 );
