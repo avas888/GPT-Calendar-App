@@ -46,9 +46,9 @@ export const useAuth = () => {
       setSupabaseUser(authUser);
       addDebugStep('handleUserSession_supabase_user_set');
       
-      // Create a timeout for database operations
+      // Reduced timeout for database operations
       const dbTimeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Database operation timeout')), 5000);
+        setTimeout(() => reject(new Error('Database operation timeout')), 3000);
       });
 
       // Try to fetch existing user profile with timeout
@@ -124,7 +124,7 @@ export const useAuth = () => {
           userProfile = {
             id: authUser.id,
             correo: authUser.email || '',
-            nome: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario',
+            nombre: authUser.user_metadata?.nombre || authUser.email?.split('@')[0] || 'Usuario',
             created_at: new Date().toISOString()
           };
           addDebugStep('handleUserSession_created_mock_user_after_upsert_fail', userProfile);
@@ -232,9 +232,9 @@ export const useAuth = () => {
     try {
       addDebugStep('checkSession_start');
       
-      // Add timeout for session check
+      // Reduced timeout for session check
       const sessionTimeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Session check timeout')), 3000);
+        setTimeout(() => reject(new Error('Session check timeout')), 2000);
       });
 
       const sessionPromise = supabase.auth.getSession();
@@ -270,13 +270,13 @@ export const useAuth = () => {
   useEffect(() => {
     addDebugStep('useEffect_initializing');
     
-    // Add overall timeout for the entire auth process
+    // Reduced overall timeout for the entire auth process
     const authTimeout = setTimeout(() => {
       if (loading) {
         addDebugStep('useEffect_overall_timeout_reached');
         setLoading(false);
       }
-    }, 8000); // 8 seconds total timeout
+    }, 5000); // 5 seconds total timeout
 
     // Check initial session
     checkSession();
