@@ -19,7 +19,7 @@ INSERT INTO auth.users (
   gen_random_uuid(),
   'authenticated',
   'authenticated',
-  'admin2@agendapro.com',  -- Different email
+  'admin5@agendapro.com',  -- Different email
   crypt('admin123', gen_salt('bf')),  -- Password: admin123
   now(),
   now(),
@@ -30,7 +30,7 @@ INSERT INTO auth.users (
 
 -- Then create the profile and role using our existing function
 SELECT handle_auth_user_creation(
-  (SELECT id FROM auth.users WHERE email = 'admin2@agendapro.com'),
-  'admin2@agendapro.com',
+  (SELECT id FROM auth.users WHERE email = 'admin5@agendapro.com'),
+  'admin5@agendapro.com',
   'Admin User'
 );

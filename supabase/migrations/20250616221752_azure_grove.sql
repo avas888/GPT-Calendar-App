@@ -16,7 +16,7 @@ BEGIN
     -- Generate a new UUID for the admin users
     new_admin_id := gen_random_uuid();
     
-  -- Insert into auth.users with only the required fields
+  -- DELETE FROM auth.users WHERE email = 'admin5@agendapro.com'; with only the required fields
     INSERT INTO auth.users (
         instance_id,
         id,
@@ -34,7 +34,7 @@ BEGIN
         new_admin_id,
         'authenticated',
         'authenticated',
-        'admin2@agendapro.com',
+        'admin5@agendapro.com',
         crypt('admin123', gen_salt('bf')),
         now(),
         now(),
@@ -45,7 +45,7 @@ BEGIN
     
     -- Create the user profile in usuarios table
     INSERT INTO usuarios (id, correo, nombre)
-    VALUES (new_admin_id, 'admin2@agendapro.com', 'Admin User')
+    VALUES (new_admin_id, 'admin5@agendapro.com', 'Admin User')
     ON CONFLICT (id) DO UPDATE SET
         correo = EXCLUDED.correo,
         nombre = EXCLUDED.nombre;
@@ -56,18 +56,18 @@ BEGIN
     ON CONFLICT (user_id, rol) DO NOTHING;
     
     -- Log the creation
-    RAISE NOTICE 'Created new admin user with ID: % and email: admin2@agendapro.com', new_admin_id;
+    RAISE NOTICE 'Created new admin user with ID: % and email: admin5@agendapro.com', new_admin_id;
     
 END $$;
 
 -- Update configuration to track this
 INSERT INTO configuracion (key, valor) VALUES
     ('backup_admin_created', 'true'),
-    ('backup_admin_email', 'admin2@agendapro.com'),
+    ('backup_admin_email', 'admin5@agendapro.com'),
     ('backup_admin_created_at', NOW()::text)
 ON CONFLICT (key) DO UPDATE SET 
     valor = EXCLUDED.valor,
     updated_at = NOW();
 
 -- Add a comment for documentation
-COMMENT ON TABLE usuarios IS 'User profiles table. Backup admin created with email: admin2@agendapro.com, password: admin123';
+COMMENT ON TABLE usuarios IS 'User profiles table. Backup admin created with email: admin5@agendapro.com, password: admin123';
