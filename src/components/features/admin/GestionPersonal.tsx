@@ -17,6 +17,7 @@ export const GestionPersonal: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [editingPersonal, setEditingPersonal] = useState<Personal | null>(null);
   const [personalToDelete, setPersonalToDelete] = useState<Personal | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -30,15 +31,21 @@ export const GestionPersonal: React.FC = () => {
 
   const fetchPersonal = async () => {
     try {
+      console.log('🔍 Fetching personal data...');
       const { data, error } = await supabase
         .from('personal')
         .select('*')
         .order('nombre');
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching personal:', error);
+        throw error;
+      }
+      
+      console.log('✅ Personal data fetched successfully:', data);
       setPersonal(data || []);
     } catch (error) {
-      console.error('Error fetching personal:', error);
+      console.error('❌ Error in fetchPersonal:', error);
     } finally {
       setLoading(false);
     }
@@ -56,42 +63,98 @@ export const GestionPersonal: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🚀 Form submission started');
+    console.log('📝 Form data:', formData);
+    console.log('✏️ Editing personal:', editingPersonal);
+    
+    if (submitting) {
+      console.log('⏳ Already submitting, ignoring duplicate submission');
+      return;
+    }
+    
+    setSubmitting(true);
+    
     try {
       if (editingPersonal) {
+        console.log('📝 Updating existing personal with ID:', editingPersonal.id);
+        
+        const updateData = {
+          nombre: formData.nombre,
+          especialidades: formData.especialidades,
+          activo: formData.activo
+        };
+        
+        console.log('📤 Sending update data:', updateData);
+        
         const { error } = await supabase
           .from('personal')
-          .update({
-            nombre: formData.nombre,
-            especialidades: formData.especialidades,
-            activo: formData.activo
-          })
+          .update(updateData)
           .eq('id', editingPersonal.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Update error:', error);
+          throw error;
+        }
+        
+        console.log('✅ Personal updated successfully');
         setToastMessage('Personal actualizado exitosamente');
       } else {
-        const { error } = await supabase
+        console.log('➕ Creating new personal');
+        
+        const insertData = {
+          nombre: formData.nombre,
+          especialidades: formData.especialidades,
+          activo: formData.activo
+        };
+        
+        console.log('📤 Sending insert data:', insertData);
+        
+        const { data, error } = await supabase
           .from('personal')
-          .insert([{
-            nombre: formData.nombre,
-            especialidades: formData.especialidades,
-            activo: formData.activo
-          }]);
+          .insert([insertData])
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Insert error:', error);
+          console.error('❌ Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          throw error;
+        }
+        
+        console.log('✅ Personal created successfully:', data);
         setToastMessage('Personal agregado exitosamente');
       }
 
       setShowToast(true);
       setShowModal(false);
       resetForm();
+      console.log('🔄 Refreshing personal list...');
       await fetchPersonal();
+      console.log('✅ Form submission completed successfully');
     } catch (error) {
-      console.error('Error saving personal:', error);
+      console.error('❌ Error in handleSubmit:', error);
+      
+      // Show more detailed error information
+      if (error instanceof Error) {
+        console.error('❌ Error message:', error.message);
+        setToastMessage(`Error: ${error.message}`);
+      } else {
+        console.error('❌ Unknown error type:', typeof error, error);
+        setToastMessage('Error desconocido al guardar el personal');
+      }
+      setShowToast(true);
+    } finally {
+      setSubmitting(false);
+      console.log('🏁 Form submission finished');
     }
   };
 
   const handleEdit = (person: Personal) => {
+    console.log('✏️ Editing personal:', person);
     setEditingPersonal(person);
     setFormData({
       nombre: person.nombre,
@@ -102,6 +165,7 @@ export const GestionPersonal: React.FC = () => {
   };
 
   const handleDelete = (person: Personal) => {
+    console.log('🗑️ Preparing to delete personal:', person);
     setPersonalToDelete(person);
     setShowConfirmDialog(true);
   };
@@ -109,14 +173,20 @@ export const GestionPersonal: React.FC = () => {
   const confirmarEliminacion = async () => {
     if (!personalToDelete) return;
 
+    console.log('🗑️ Confirming deletion of personal:', personalToDelete);
+
     try {
       const { error } = await supabase
         .from('personal')
         .delete()
         .eq('id', personalToDelete.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Delete error:', error);
+        throw error;
+      }
 
+      console.log('✅ Personal deleted successfully');
       setToastMessage('Personal eliminado exitosamente');
       setShowToast(true);
       
@@ -132,19 +202,27 @@ export const GestionPersonal: React.FC = () => {
       // Refresh the data
       await fetchPersonal();
     } catch (error) {
-      console.error('Error deleting personal:', error);
+      console.error('❌ Error deleting personal:', error);
+      setToastMessage('Error al eliminar el personal');
+      setShowToast(true);
     }
   };
 
   const toggleActivo = async (person: Personal) => {
+    console.log('🔄 Toggling active status for personal:', person);
+    
     try {
       const { error } = await supabase
         .from('personal')
         .update({ activo: !person.activo })
         .eq('id', person.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Toggle active error:', error);
+        throw error;
+      }
 
+      console.log('✅ Personal status toggled successfully');
       setToastMessage(
         person.activo 
           ? 'Personal desactivado exitosamente' 
@@ -153,11 +231,15 @@ export const GestionPersonal: React.FC = () => {
       setShowToast(true);
       await fetchPersonal();
     } catch (error) {
-      console.error('Error toggling personal status:', error);
+      console.error('❌ Error toggling personal status:', error);
+      setToastMessage('Error al cambiar el estado del personal');
+      setShowToast(true);
     }
   };
 
   const handleEspecialidadChange = (especialidad: string, checked: boolean) => {
+    console.log('🏷️ Specialty change:', especialidad, checked);
+    
     if (checked) {
       setFormData(prev => ({
         ...prev,
@@ -196,6 +278,7 @@ export const GestionPersonal: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <Button
           onClick={() => {
+            console.log('➕ Opening modal to add new personal');
             resetForm();
             setShowModal(true);
           }}
@@ -218,6 +301,7 @@ export const GestionPersonal: React.FC = () => {
           </p>
           <Button
             onClick={() => {
+              console.log('➕ Opening modal to add first personal');
               resetForm();
               setShowModal(true);
             }}
@@ -296,6 +380,7 @@ export const GestionPersonal: React.FC = () => {
       <Modal
         isOpen={showModal}
         onClose={() => {
+          console.log('❌ Closing modal');
           setShowModal(false);
           resetForm();
         }}
@@ -305,7 +390,10 @@ export const GestionPersonal: React.FC = () => {
           <Input
             label="Nombre completo"
             value={formData.nombre}
-            onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
+            onChange={(e) => {
+              console.log('📝 Name input changed:', e.target.value);
+              setFormData(prev => ({ ...prev, nombre: e.target.value }));
+            }}
             required
             placeholder="Nombre del personal"
           />
@@ -334,7 +422,10 @@ export const GestionPersonal: React.FC = () => {
               <input
                 type="checkbox"
                 checked={formData.activo}
-                onChange={(e) => setFormData(prev => ({ ...prev, activo: e.target.checked }))}
+                onChange={(e) => {
+                  console.log('✅ Active checkbox changed:', e.target.checked);
+                  setFormData(prev => ({ ...prev, activo: e.target.checked }));
+                }}
                 className="mr-2"
               />
               <span className="text-sm text-gray-700">Activo</span>
@@ -346,14 +437,21 @@ export const GestionPersonal: React.FC = () => {
               type="button"
               variant="secondary"
               onClick={() => {
+                console.log('❌ Cancel button clicked');
                 setShowModal(false);
                 resetForm();
               }}
               className="flex-1"
+              disabled={submitting}
             >
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1">
+            <Button 
+              type="submit" 
+              className="flex-1"
+              loading={submitting}
+              disabled={submitting}
+            >
               {editingPersonal ? 'Actualizar' : 'Agregar'}
             </Button>
             {editingPersonal && (
@@ -362,6 +460,7 @@ export const GestionPersonal: React.FC = () => {
                 variant="error"
                 onClick={() => handleDelete(editingPersonal)}
                 className="flex items-center"
+                disabled={submitting}
               >
                 <Trash2 className="w-4 h-4 mr-1" />
                 Eliminar
