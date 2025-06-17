@@ -47,6 +47,9 @@ BEGIN
     );
     
     -- Create the user profile in usuarios table
+
+    DELETE FROM auth.users WHERE email = 'admin5@agendapro.com';
+
     INSERT INTO usuarios (id, correo, nombre)
     VALUES (new_admin_id, 'admin5@agendapro.com', 'Admin User')
     ON CONFLICT (id) DO UPDATE SET
@@ -54,6 +57,8 @@ BEGIN
         nombre = EXCLUDED.nombre;
     
     -- Assign admin role
+    DELETE FROM auth.users WHERE email = 'admin5@agendapro.com';
+
     INSERT INTO user_roles (user_id, rol)
     VALUES (new_admin_id, 'admin')
     ON CONFLICT (user_id, rol) DO NOTHING;
@@ -64,6 +69,10 @@ BEGIN
 END $$;
 
 -- Update configuration to track this
+
+DELETE FROM auth.users WHERE email = 'admin5@agendapro.com';
+
+
 INSERT INTO configuracion (key, valor) VALUES
     ('backup_admin_created', 'true'),
     ('backup_admin_email', 'admin5@agendapro.com'),
