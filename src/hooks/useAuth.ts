@@ -1,21 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
-import { type User } from '@supabase/supabase-js';
+import { type User, type Session } from '@supabase/supabase-js';
+import type { PostgrestSingleResponse } from '@supabase/postgrest-js';
 import { supabase, Usuario } from '../lib/supabaseClient';
 
 // Debug state interface
 interface DebugState {
   step: string;
   timestamp: string;
-  data?: any;
+  data?: unknown;
   error?: string;
 }
 
 // Custom signup result interface
 interface SignUpResult {
   user: User | null;
-  session: any;
+  session: Session | null;
   userAlreadyExists?: boolean;
-  error?: any;
+  error?: unknown;
 }
 
 export const useAuth = () => {
@@ -26,7 +27,7 @@ export const useAuth = () => {
   const [debugSteps, setDebugSteps] = useState<DebugState[]>([]);
 
   // Debug logging function
-  const addDebugStep = (step: string, data?: any, error?: string) => {
+  const addDebugStep = (step: string, data?: unknown, error?: string) => {
     const debugStep: DebugState = {
       step,
       timestamp: new Date().toISOString(),
@@ -66,7 +67,7 @@ export const useAuth = () => {
         const { data: existingUser, error: selectError } = await Promise.race([
           userFetchPromise,
           dbTimeout
-        ]) as any;
+        ]) as PostgrestSingleResponse<Usuario>;
 
         if (selectError && selectError.code !== 'PGRST116') { // PGRST116 = no rows returned
           addDebugStep('handleUserSession_user_select_error', null, selectError.message);
@@ -109,7 +110,7 @@ export const useAuth = () => {
           const { data: upsertedUser, error: upsertError } = await Promise.race([
             userCreatePromise,
             dbTimeout
-          ]) as any;
+          ]) as PostgrestSingleResponse<Usuario>;
 
           if (upsertError) {
             addDebugStep('handleUserSession_user_upsert_error', null, upsertError.message);
@@ -160,7 +161,7 @@ export const useAuth = () => {
         const { data: roleData, error: roleError } = await Promise.race([
           roleFetchPromise,
           dbTimeout
-        ]) as any;
+        ]) as PostgrestSingleResponse<{ rol: string }>;
 
         if (roleError && roleError.code !== 'PGRST116') {
           addDebugStep('handleUserSession_role_fetch_error', null, roleError.message);
@@ -242,7 +243,7 @@ export const useAuth = () => {
       const { data: { session }, error } = await Promise.race([
         sessionPromise,
         sessionTimeout
-      ]) as any;
+      ]) as { data: { session: Session | null }; error: unknown };
       
       if (error) {
         addDebugStep('checkSession_error', null, error.message);
