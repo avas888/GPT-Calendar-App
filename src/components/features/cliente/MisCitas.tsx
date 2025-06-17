@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+
 import { supabase, Cita, Personal, Servicio } from '../../../lib/supabaseClient';
 import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '../../atoms/Button';
@@ -8,7 +8,7 @@ import { ToastSuccess } from '../../atoms/ToastSuccess';
 import { Calendar, Clock, User, X, AlertCircle } from 'lucide-react';
 import { format, parseISO, isBefore, addHours } from 'date-fns';
 import { es } from 'date-fns/locale';
-
+import React, { useState, useEffect, useCallback } from 'react';
 interface CitaDetallada extends Cita {
   personal: Personal;
   servicios_detalle: Servicio[];
