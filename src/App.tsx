@@ -6,7 +6,6 @@ import { ReservarCita } from './components/features/cliente/ReservarCita';
 import { MisCitas } from './components/features/cliente/MisCitas';
 import { AgendaPersonal } from './components/features/colaborador/AgendaPersonal';
 import { PanelAdministrativo } from './components/features/admin/PanelAdministrativo';
-import { DebugInfo } from './components/DebugInfo';
 import { useAuth } from './hooks/useAuth';
 
 function App() {
@@ -79,7 +78,6 @@ function App() {
   return (
     <Router>
       <Layout>
-        <DebugInfo />
         <Routes>
           {/* Default route - all users go to admin agenda in dev mode */}
           <Route path="/" element={<Navigate to="/admin/agenda" replace />} />
