@@ -16,7 +16,7 @@ BEGIN
     -- Generate a new UUID for the admin user
     new_admin_id := gen_random_uuid();
     
-    -- Insert into auth.users with only the required fields
+  -- Insert into auth.users with only the required fields
     INSERT INTO auth.users (
         instance_id,
         id,
